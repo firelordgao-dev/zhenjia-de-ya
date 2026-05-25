@@ -1,0 +1,146 @@
+<view class="page">
+  <view class="topbar">
+    <view class="brand">
+      <image class="brand-icon" src="/assets/icon-duck-minjin-192.png" mode="aspectFill" />
+      <view class="brand-copy">
+        <view class="brand-title">真的假的鸭</view>
+        <view class="brand-subtitle">拿不准，先停下，问一问</view>
+        <view class="service-chip">社会服务 · 反诈守护</view>
+      </view>
+    </view>
+    <button class="call-button" bindtap="callPolice">拨打 110</button>
+  </view>
+
+  <view class="emergency">
+    <view>
+      <view class="eyebrow">先看这里</view>
+      <view class="emergency-title">已经转钱、给验证码、开屏幕共享，先别继续。</view>
+    </view>
+    <view class="emergency-actions">
+      <button class="danger-button" bindtap="callPolice">马上打 110</button>
+      <button class="plain-button" bindtap="callAntiFraud">咨询 96110</button>
+    </view>
+  </view>
+
+  <view class="culture-strip" aria-hidden="true">
+    <view class="culture-dot"></view>
+    <view class="culture-line"></view>
+    <view class="culture-book"></view>
+    <view class="culture-line"></view>
+    <view class="culture-dot"></view>
+  </view>
+
+  <view class="panel">
+    <view class="panel-header">
+      <view>
+        <view class="eyebrow">第一步</view>
+        <view class="section-title">对方让你做什么？</view>
+      </view>
+      <button class="small-button" bindtap="loadSample">看示例</button>
+    </view>
+
+    <view class="scenario-grid">
+      <button wx:for="{{scenarioOptions}}" wx:key="value" class="scenario-card {{scenario === item.value ? 'is-selected' : ''}}" data-scenario="{{item.value}}" bindtap="selectScenario">
+        {{item.label}}
+      </button>
+    </view>
+
+    <view class="field-label">把可疑内容粘贴或打在这里</view>
+    <view class="input-tools">
+      <button class="plain-button" bindtap="pasteFromClipboard">粘贴微信复制的内容</button>
+    </view>
+    <textarea class="case-textarea" value="{{caseText}}" bindinput="onTextInput" placeholder="例如：对方说我是客服，快递丢了要给我退款，让我点链接、填银行卡，还要把验证码发给他。" maxlength="-1" auto-height="{{false}}" />
+
+    <view class="upload-row">
+      <button class="upload-button" bindtap="chooseScreenshot">加截图</button>
+      <view class="upload-hint">先把截图留好，报警或找家人时有用。</view>
+    </view>
+    <view wx:if="{{imageName}}" class="image-chip">{{imageName}}</view>
+
+    <view wx:if="{{imagePath}}" class="ocr-panel">
+      <button class="plain-button" loading="{{ocrLoading}}" disabled="{{ocrLoading}}" bindtap="recognizeImage">识别截图文字</button>
+      <view class="ocr-status">{{ocrStatus}}</view>
+    </view>
+
+    <view class="privacy-note">
+      截图只用于识别文字。识别完成后，云函数会尽量删除临时上传的截图；请你自己保存原始聊天记录和转账凭证。
+    </view>
+
+    <view class="field-label">第二步：已经发生了哪件事？</view>
+    <checkbox-group class="state-group" bindchange="onStateChange">
+      <label wx:for="{{stateOptions}}" wx:key="value" class="state-item">
+        <checkbox value="{{item.value}}" checked="{{selectedStatesMap[item.value]}}" color="#046d68" />
+        <text>{{item.label}}</text>
+      </label>
+    </checkbox-group>
+
+    <view wx:if="{{urgentHint}}" class="urgent-hint">
+      {{urgentHint}}
+    </view>
+
+    <button class="primary-button" loading="{{loading}}" disabled="{{loading}}" bindtap="analyze">
+      帮我判断真的假的
+    </button>
+  </view>
+
+  <view class="panel result-panel">
+    <view class="panel-header">
+      <view>
+        <view class="eyebrow">第三步</view>
+        <view class="section-title">看结果，照着做</view>
+      </view>
+      <view class="status-pill">{{statusText}}</view>
+    </view>
+
+    <view wx:if="{{!analysis && !loading}}" class="empty-state">
+      <image class="empty-mascot" src="/assets/logo-duck-minjin.png" mode="aspectFill" />
+      <view>先把对方的话放进来，再点大按钮。结果会告诉你：像不像诈骗、现在先做哪几件事。</view>
+    </view>
+
+    <view wx:if="{{loading}}" class="loading-state">
+      <view class="spinner"></view>
+      <view>正在检查风险点...</view>
+    </view>
+
+    <view wx:if="{{analysis}}" class="result-content">
+      <view class="risk-banner risk-{{analysis.risk_level}}">
+        <view class="risk-label">{{riskText}}</view>
+        <view class="risk-summary">{{analysis.summary}}</view>
+      </view>
+
+      <view class="next-step-box">
+        <view class="box-title">现在先做这几件事</view>
+        <view wx:for="{{analysis.recommended_actions}}" wx:key="*this" class="ordered-item">
+          <text class="number">{{index + 1}}</text>
+          <text>{{item}}</text>
+        </view>
+      </view>
+
+      <view class="quick-help">
+        <button class="danger-button" bindtap="callPolice">拨打 110</button>
+        <button class="plain-button" bindtap="copyFamilyMessage">复制给家人</button>
+        <button class="plain-button" open-type="share">转发小程序</button>
+      </view>
+
+      <view class="police-box">
+        <view class="box-title">报警提醒</view>
+        <view>{{analysis.police_notice}}</view>
+      </view>
+
+      <view class="detail-box">
+        <view class="box-title">哪里危险</view>
+        <view wx:for="{{analysis.red_flags}}" wx:key="*this" class="list-item">• {{item}}</view>
+      </view>
+
+      <view class="detail-box">
+        <view class="box-title">先保存这些证据</view>
+        <view wx:for="{{analysis.evidence_to_keep}}" wx:key="*this" class="list-item">• {{item}}</view>
+      </view>
+
+      <view class="family-box">
+        <view class="box-title">发给家人的话</view>
+        <view>{{analysis.family_message}}</view>
+      </view>
+    </view>
+  </view>
+</view>

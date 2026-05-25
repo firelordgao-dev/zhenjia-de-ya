@@ -1,0 +1,14 @@
+{
+  "name": "zhenjia-de-ya",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node server/index.mjs",
+    "start": "node server/index.mjs",
+    "check": "node --check server/index.mjs && node --check server/agent.mjs && node --check server/deepseekClient.mjs && node --check server/riskRules.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

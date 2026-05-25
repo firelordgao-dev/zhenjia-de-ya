@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>真的假的鸭 - 反诈小助手</title>
+    <link rel="icon" type="image/png" href="/assets/favicon.png" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body class="senior-mode">
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">
+            <img src="/assets/icon-duck-192.png" alt="" />
+          </div>
+          <div>
+            <h1>真的假的鸭</h1>
+            <p>拿不准，先停下，问一问</p>
+          </div>
+        </div>
+        <div class="header-actions" aria-label="页面辅助">
+          <button class="text-size-button" id="textSizeButton" type="button" aria-pressed="true">
+            大字模式
+          </button>
+          <a class="call-button" href="tel:110">拨打 110</a>
+        </div>
+      </header>
+
+      <main class="workspace">
+        <section class="emergency-strip" aria-labelledby="emergency-title">
+          <div>
+            <p class="eyebrow">先看这里</p>
+            <h2 id="emergency-title">已经转钱、给验证码、开屏幕共享，先别继续。</h2>
+          </div>
+          <div class="emergency-actions">
+            <a class="danger-call" href="tel:110">马上打 110</a>
+            <a class="plain-call" href="tel:96110">咨询 96110</a>
+          </div>
+        </section>
+
+        <section class="input-panel" aria-labelledby="input-title">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">第一步</p>
+              <h2 id="input-title">对方让你做什么？</h2>
+            </div>
+            <button class="ghost-button" id="loadSampleButton" type="button">看示例</button>
+          </div>
+
+          <input id="scenario" type="hidden" value="chat" />
+          <div class="scenario-grid" role="group" aria-label="选择可疑情况">
+            <button class="scenario-card is-selected" type="button" data-scenario="chat">
+              微信或短信
+            </button>
+            <button class="scenario-card" type="button" data-scenario="phone">电话里说的</button>
+            <button class="scenario-card" type="button" data-scenario="payment">转账或退款</button>
+            <button class="scenario-card" type="button" data-scenario="link">链接或 App</button>
+            <button class="scenario-card" type="button" data-scenario="investment">投资或刷单</button>
+            <button class="scenario-card" type="button" data-scenario="other">说不清</button>
+          </div>
+
+          <label class="field-label" for="caseText">把可疑内容粘贴或打在这里</label>
+          <textarea
+            id="caseText"
+            class="case-textarea"
+            placeholder="例如：对方说我是客服，快递丢了要给我退款，让我点链接、填银行卡，还要把验证码发给他。"
+          ></textarea>
+
+          <div class="upload-row">
+            <label class="file-picker" for="imageInput">
+              <span aria-hidden="true">+</span>
+              加截图
+            </label>
+            <input id="imageInput" type="file" accept="image/*" multiple />
+            <p id="imageHint">先把截图留好，报警或找家人时有用。</p>
+          </div>
+          <div id="imageList" class="image-list" aria-live="polite"></div>
+          <div class="ocr-panel" id="ocrPanel" hidden>
+            <button class="secondary-button" id="ocrButton" type="button">识别截图文字</button>
+            <p id="ocrStatus">选择截图后，可以先识别文字，再让鸭鸭判断。</p>
+          </div>
+
+          <fieldset class="state-group">
+            <legend>第二步：已经发生了哪件事？</legend>
+            <label><input type="checkbox" value="transferred" /> 已经转账或充值</label>
+            <label><input type="checkbox" value="leakedCode" /> 给过验证码</label>
+            <label><input type="checkbox" value="screenSharing" /> 正在屏幕共享</label>
+            <label><input type="checkbox" value="installedApp" /> 下载了陌生 App</label>
+            <label><input type="checkbox" value="clickedLink" /> 点过陌生链接</label>
+            <label><input type="checkbox" value="gaveIdCard" /> 给过身份证或银行卡</label>
+          </fieldset>
+
+          <button class="primary-button" id="analyzeButton" type="button">
+            帮我判断真的假的
+          </button>
+        </section>
+
+        <section class="result-panel" aria-labelledby="result-title">
+          <div class="result-header">
+            <div>
+              <p class="eyebrow">第三步</p>
+              <h2 id="result-title">看结果，照着做</h2>
+            </div>
+            <span class="status-pill" id="statusPill">待分析</span>
+          </div>
+
+          <div id="emptyState" class="empty-state">
+            <div class="empty-mascot" aria-hidden="true">
+              <img src="/assets/logo-duck.png" alt="" />
+            </div>
+            <p>先把对方的话放进来，再点大按钮。结果会告诉你：像不像诈骗、现在先做哪几件事。</p>
+          </div>
+
+          <div id="loadingState" class="loading-state" hidden>
+            <div class="spinner" aria-hidden="true"></div>
+            <p>正在检查风险点...</p>
+          </div>
+
+          <article id="resultContent" class="result-content" hidden>
+            <div class="risk-banner" id="riskBanner">
+              <span id="riskLevelText">风险等级</span>
+              <strong id="summaryText"></strong>
+            </div>
+
+            <section class="next-step-box">
+              <h3>现在先做这几件事</h3>
+              <ol id="actionsList"></ol>
+            </section>
+
+            <div class="quick-help">
+              <a class="danger-call" href="tel:110">拨打 110</a>
+              <button class="secondary-button" id="copyFamilyButton" type="button">分享给家人</button>
+            </div>
+
+            <section class="police-box" id="policeBox">
+              <h3>报警提醒</h3>
+              <p id="policeNotice"></p>
+            </section>
+
+            <div class="detail-grid">
+              <section>
+                <h3>哪里危险</h3>
+                <ul id="redFlagsList"></ul>
+              </section>
+              <section>
+                <h3>先保存这些证据</h3>
+                <ul id="evidenceList"></ul>
+              </section>
+            </div>
+
+            <section class="family-box">
+              <h3>发给家人的话</h3>
+              <p id="familyMessage"></p>
+            </section>
+
+            <details class="meta-box">
+              <summary>给子女看：分析来源</summary>
+              <pre id="metaText"></pre>
+            </details>
+          </article>
+        </section>
+      </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js" defer></script>
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>

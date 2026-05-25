@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>小程序视觉预览 - 真的假的鸭</title>
+    <link rel="icon" type="image/png" href="/assets/icon-duck-minjin-192.png" />
+    <link rel="stylesheet" href="/miniprogram-preview.css" />
+  </head>
+  <body>
+    <main class="phone-frame" aria-label="微信小程序预览">
+      <section class="mini-page">
+        <header class="topbar">
+          <div class="brand">
+            <img class="brand-icon" src="/assets/icon-duck-minjin-192.png" alt="" />
+            <div class="brand-copy">
+              <h1>真的假的鸭</h1>
+              <p>拿不准，先停下，问一问</p>
+              <span>社会服务 · 反诈守护</span>
+            </div>
+          </div>
+          <button class="call-button">拨打 110</button>
+        </header>
+
+        <section class="emergency">
+          <p class="eyebrow">先看这里</p>
+          <h2>已经转钱、给验证码、开屏幕共享，先别继续。</h2>
+          <div class="button-row">
+            <button class="danger-button">马上打 110</button>
+            <button class="plain-button">咨询 96110</button>
+          </div>
+        </section>
+
+        <div class="culture-strip" aria-hidden="true">
+          <span class="culture-dot"></span>
+          <span class="culture-line"></span>
+          <span class="culture-book"></span>
+          <span class="culture-line"></span>
+          <span class="culture-dot"></span>
+        </div>
+
+        <section class="panel">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">第一步</p>
+              <h2>对方让你做什么？</h2>
+            </div>
+            <button class="small-button">看示例</button>
+          </div>
+
+          <div class="scenario-grid">
+            <button class="scenario-card is-selected">微信或短信</button>
+            <button class="scenario-card">电话里说的</button>
+            <button class="scenario-card">转账或退款</button>
+            <button class="scenario-card">链接或 App</button>
+            <button class="scenario-card">投资或刷单</button>
+            <button class="scenario-card">说不清</button>
+          </div>
+
+          <label class="field-label">把可疑内容粘贴或打在这里</label>
+          <button class="wide-button">粘贴微信复制的内容</button>
+          <div class="textarea-mock">
+            例如：对方说我是客服，快递丢了要给我退款，让我点链接、填银行卡，还要把验证码发给他。
+          </div>
+
+          <div class="upload-row">
+            <button class="upload-button">加截图</button>
+            <p>先把截图留好，报警或找家人时有用。</p>
+          </div>
+
+          <div class="privacy-note">
+            截图只用于识别文字。识别完成后，云函数会尽量删除临时上传的截图；请你自己保存原始聊天记录和转账凭证。
+          </div>
+
+          <label class="field-label">第二步：已经发生了哪件事？</label>
+          <div class="state-list">
+            <div>□ 已经转账或充值</div>
+            <div>□ 给过验证码</div>
+            <div>□ 正在屏幕共享</div>
+          </div>
+
+          <button class="primary-button">帮我判断真的假的</button>
+        </section>
+
+        <section class="panel result-panel">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">第三步</p>
+              <h2>看结果，照着做</h2>
+            </div>
+            <span class="status-pill">待分析</span>
+          </div>
+
+          <div class="empty-state">
+            <img src="/assets/logo-duck-minjin.png" alt="" />
+            <p>先把对方的话放进来，再点大按钮。结果会告诉你：像不像诈骗、现在先做哪几件事。</p>
+          </div>
+        </section>
+      </section>
+    </main>
+  </body>
+</html>

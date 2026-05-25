@@ -1,0 +1,11 @@
+{
+  "pages": ["pages/index/index"],
+  "window": {
+    "navigationBarTitleText": "真的假的鸭",
+    "navigationBarBackgroundColor": "#f4f5ef",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#f4f5ef"
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}
