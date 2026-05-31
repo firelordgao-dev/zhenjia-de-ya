@@ -30,6 +30,33 @@
     <view class="culture-dot"></view>
   </view>
 
+  <view class="quick-start">
+    <view class="quick-start-title">现在先选一个</view>
+    <view class="quick-start-grid">
+      <button class="quick-start-card" bindtap="pasteFromClipboard">
+        <text class="quick-symbol">文</text>
+        <view class="quick-copy">
+          <view class="quick-name">粘贴文字</view>
+          <view class="quick-desc">微信复制后点这里</view>
+        </view>
+      </button>
+      <button class="quick-start-card" bindtap="chooseScreenshot">
+        <text class="quick-symbol">图</text>
+        <view class="quick-copy">
+          <view class="quick-name">上传截图</view>
+          <view class="quick-desc">聊天截图也能识别</view>
+        </view>
+      </button>
+      <button class="quick-start-card urgent-card" bindtap="showGeneralEmergencyGuide">
+        <text class="quick-symbol urgent-symbol">停</text>
+        <view class="quick-copy">
+          <view class="quick-name">已经出事</view>
+          <view class="quick-desc">转账、给码、共享屏幕</view>
+        </view>
+      </button>
+    </view>
+  </view>
+
   <view class="panel">
     <view class="panel-header">
       <view>
@@ -74,8 +101,25 @@
       </label>
     </checkbox-group>
 
-    <view wx:if="{{urgentHint}}" class="urgent-hint">
-      {{urgentHint}}
+    <view wx:if="{{urgentGuide}}" class="urgent-guide">
+      <view class="urgent-guide-top">
+        <view>
+          <view class="urgent-label">先止损</view>
+          <view class="urgent-title">{{urgentGuide.title}}</view>
+        </view>
+        <view class="urgent-badge">现在做</view>
+      </view>
+      <view class="urgent-summary">{{urgentGuide.summary}}</view>
+      <view class="urgent-steps">
+        <view wx:for="{{urgentGuide.steps}}" wx:key="*this" class="ordered-item">
+          <text class="number red-number">{{index + 1}}</text>
+          <text>{{item}}</text>
+        </view>
+      </view>
+      <view class="urgent-actions">
+        <button class="danger-button" bindtap="callPolice">拨打 110</button>
+        <button class="plain-button" bindtap="copyUrgentGuide">复制给家人</button>
+      </view>
     </view>
 
     <button class="primary-button" loading="{{loading}}" disabled="{{loading}}" bindtap="analyze">
@@ -106,13 +150,29 @@
       <view class="risk-banner risk-{{analysis.risk_level}}">
         <view class="risk-label">{{riskText}}</view>
         <view class="risk-summary">{{analysis.summary}}</view>
+        <view wx:if="{{analysis.scam_type_label || analysis.case_stage_label}}" class="risk-tags">
+          <text wx:if="{{analysis.scam_type_label}}">{{analysis.scam_type_label}}</text>
+          <text wx:if="{{analysis.case_stage_label}}">{{analysis.case_stage_label}}</text>
+        </view>
       </view>
 
-      <view class="next-step-box">
-        <view class="box-title">现在先做这几件事</view>
-        <view wx:for="{{analysis.recommended_actions}}" wx:key="*this" class="ordered-item">
-          <text class="number">{{index + 1}}</text>
+      <view wx:if="{{analysis.display_sop_steps && analysis.display_sop_steps.length}}" class="sop-box">
+        <view class="box-title">现在只做这几件事</view>
+        <view wx:for="{{analysis.display_sop_steps}}" wx:key="*this" class="ordered-item">
+          <text class="number red-number">{{index + 1}}</text>
           <text>{{item}}</text>
+        </view>
+      </view>
+
+      <view wx:if="{{analysis.display_privacy_step || analysis.display_verify_step}}" class="safety-box">
+        <view class="box-title">先保护自己</view>
+        <view wx:if="{{analysis.display_privacy_step}}" class="safety-line">
+          <text class="safety-key">隐私</text>
+          <text>{{analysis.display_privacy_step}}</text>
+        </view>
+        <view wx:if="{{analysis.display_verify_step}}" class="safety-line">
+          <text class="safety-key">核实</text>
+          <text>{{analysis.display_verify_step}}</text>
         </view>
       </view>
 
@@ -122,24 +182,43 @@
         <button class="plain-button" open-type="share">转发小程序</button>
       </view>
 
-      <view class="police-box">
-        <view class="box-title">报警提醒</view>
-        <view>{{analysis.police_notice}}</view>
-      </view>
+      <button class="detail-toggle" bindtap="toggleDetails">{{detailToggleText}}</button>
 
-      <view class="detail-box">
-        <view class="box-title">哪里危险</view>
-        <view wx:for="{{analysis.red_flags}}" wx:key="*this" class="list-item">• {{item}}</view>
-      </view>
+      <view wx:if="{{detailExpanded}}" class="detail-panel">
+        <view class="detail-panel-title">详细说明</view>
 
-      <view class="detail-box">
-        <view class="box-title">先保存这些证据</view>
-        <view wx:for="{{analysis.evidence_to_keep}}" wx:key="*this" class="list-item">• {{item}}</view>
-      </view>
+        <view class="next-step-box">
+          <view class="box-title">其他提醒</view>
+          <view wx:for="{{analysis.recommended_actions}}" wx:key="*this" class="ordered-item">
+            <text class="number">{{index + 1}}</text>
+            <text>{{item}}</text>
+          </view>
+        </view>
 
-      <view class="family-box">
-        <view class="box-title">发给家人的话</view>
-        <view>{{analysis.family_message}}</view>
+        <view class="police-box">
+          <view class="box-title">报警提醒</view>
+          <view>{{analysis.police_notice}}</view>
+        </view>
+
+        <view wx:if="{{analysis.judgement_basis && analysis.judgement_basis.length}}" class="detail-box">
+          <view class="box-title">判断依据</view>
+          <view wx:for="{{analysis.judgement_basis}}" wx:key="*this" class="list-item">• {{item}}</view>
+        </view>
+
+        <view class="detail-box">
+          <view class="box-title">哪里危险</view>
+          <view wx:for="{{analysis.red_flags}}" wx:key="*this" class="list-item">• {{item}}</view>
+        </view>
+
+        <view class="detail-box">
+          <view class="box-title">先保存这些证据</view>
+          <view wx:for="{{analysis.evidence_to_keep}}" wx:key="*this" class="list-item">• {{item}}</view>
+        </view>
+
+        <view class="family-box">
+          <view class="box-title">发给家人的话</view>
+          <view>{{analysis.family_message}}</view>
+        </view>
       </view>
     </view>
   </view>

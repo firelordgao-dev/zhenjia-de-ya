@@ -133,6 +133,88 @@
   background: linear-gradient(90deg, #fff7d8 0 48%, #f7e6ae 48% 52%, #fff7d8 52% 100%);
 }
 
+.quick-start {
+  padding: 22rpx;
+  margin-bottom: 20rpx;
+  border: 2rpx solid rgba(210, 162, 58, 0.52);
+  border-radius: 16rpx;
+  background: #ffffff;
+  box-shadow: 0 14rpx 30rpx rgba(18, 24, 21, 0.08);
+}
+
+.quick-start-title {
+  margin-bottom: 14rpx;
+  color: #034c49;
+  font-size: 34rpx;
+  font-weight: 900;
+}
+
+.quick-start-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14rpx;
+}
+
+.quick-start-card {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  min-height: 104rpx;
+  padding: 16rpx;
+  border: 3rpx solid #cbd4cd;
+  border-radius: 16rpx;
+  background: #fbfcfa;
+  color: #121815;
+  text-align: left;
+  box-sizing: border-box;
+}
+
+.quick-start-card::after {
+  border: 0;
+}
+
+.urgent-card {
+  border-color: rgba(181, 40, 40, 0.38);
+  background: #fff0ed;
+}
+
+.quick-symbol {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 58rpx;
+  height: 58rpx;
+  border-radius: 50%;
+  background: #eaf8f3;
+  color: #034c49;
+  font-size: 30rpx;
+  font-weight: 900;
+  flex: 0 0 auto;
+}
+
+.urgent-symbol {
+  background: #b52828;
+  color: #ffffff;
+}
+
+.quick-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.quick-name {
+  font-size: 34rpx;
+  font-weight: 900;
+  line-height: 1.25;
+}
+
+.quick-desc {
+  margin-top: 4rpx;
+  color: #4e5b56;
+  font-size: 27rpx;
+  line-height: 1.35;
+}
+
 .eyebrow {
   margin-bottom: 8rpx;
   color: #8e1f1f;
@@ -315,16 +397,65 @@
   transform: scale(1.22);
 }
 
-.urgent-hint {
+.urgent-guide {
   margin-top: 18rpx;
-  padding: 18rpx;
+  padding: 20rpx;
   border: 3rpx solid rgba(181, 40, 40, 0.36);
   border-radius: 16rpx;
   background: #fff0ed;
+  color: #121815;
+  line-height: 1.55;
+}
+
+.urgent-guide-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+
+.urgent-label {
+  color: #8e1f1f;
+  font-size: 28rpx;
+  font-weight: 900;
+}
+
+.urgent-title {
+  margin-top: 4rpx;
+  font-size: 38rpx;
+  font-weight: 900;
+  line-height: 1.25;
+}
+
+.urgent-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 48rpx;
+  padding: 0 16rpx;
+  border-radius: 999rpx;
+  background: #b52828;
+  color: #ffffff;
+  font-size: 26rpx;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.urgent-summary {
+  margin-top: 12rpx;
   color: #8e1f1f;
   font-size: 34rpx;
   font-weight: 900;
-  line-height: 1.45;
+}
+
+.urgent-steps {
+  margin-top: 12rpx;
+}
+
+.urgent-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16rpx;
+  margin-top: 18rpx;
 }
 
 .primary-button {
@@ -389,10 +520,13 @@
 
 .result-content {
   display: grid;
-  gap: 18rpx;
+  gap: 14rpx;
 }
 
 .risk-banner,
+.sop-box,
+.safety-box,
+.detail-panel,
 .next-step-box,
 .police-box,
 .detail-box,
@@ -430,6 +564,76 @@
   line-height: 1.35;
 }
 
+.risk-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+  margin-top: 14rpx;
+}
+
+.risk-tags text {
+  padding: 8rpx 14rpx;
+  border-radius: 999rpx;
+  background: #ffffff;
+  color: #8e1f1f;
+  font-size: 26rpx;
+  font-weight: 900;
+}
+
+.sop-box {
+  background: #fff7f5;
+  border-color: rgba(181, 40, 40, 0.3);
+}
+
+.safety-box {
+  background: #fff8e5;
+  border-color: rgba(210, 162, 58, 0.58);
+}
+
+.safety-line {
+  display: flex;
+  gap: 12rpx;
+  margin-top: 12rpx;
+  line-height: 1.55;
+}
+
+.safety-key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 72rpx;
+  height: 44rpx;
+  border-radius: 999rpx;
+  background: #fff0ed;
+  color: #8e1f1f;
+  font-size: 26rpx;
+  font-weight: 900;
+  flex: 0 0 auto;
+}
+
+.detail-toggle {
+  min-height: 82rpx;
+  border: 3rpx solid #cbd4cd;
+  border-radius: 14rpx;
+  background: #ffffff;
+  color: #034c49;
+  font-size: 31rpx;
+  font-weight: 900;
+}
+
+.detail-panel {
+  display: grid;
+  gap: 16rpx;
+  padding: 18rpx;
+  background: #fbfcfa;
+}
+
+.detail-panel-title {
+  color: #034c49;
+  font-size: 34rpx;
+  font-weight: 900;
+}
+
 .box-title {
   margin-bottom: 14rpx;
   font-size: 34rpx;
@@ -462,6 +666,14 @@
   flex: 0 0 auto;
 }
 
+.red-number {
+  background: linear-gradient(180deg, #b52828, #8e1f1f);
+}
+
+.gold-number {
+  background: linear-gradient(180deg, #d2a23a, #9b6f18);
+}
+
 .police-box {
   background: #fff7f5;
 }
@@ -471,6 +683,7 @@
 }
 
 @media (min-width: 760px) {
+  .quick-start-grid,
   .scenario-grid,
   .state-group {
     grid-template-columns: 1fr 1fr;

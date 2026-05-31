@@ -39,6 +39,33 @@
           <span class="culture-dot"></span>
         </div>
 
+        <section class="quick-start">
+          <h2>现在先选一个</h2>
+          <div class="quick-start-grid">
+            <button class="quick-start-card">
+              <span class="quick-symbol">文</span>
+              <span>
+                <strong>粘贴文字</strong>
+                <small>微信复制后点这里</small>
+              </span>
+            </button>
+            <button class="quick-start-card">
+              <span class="quick-symbol">图</span>
+              <span>
+                <strong>上传截图</strong>
+                <small>聊天截图也能识别</small>
+              </span>
+            </button>
+            <button class="quick-start-card urgent-card">
+              <span class="quick-symbol urgent-symbol">停</span>
+              <span>
+                <strong>已经出事</strong>
+                <small>转账、给码、共享屏幕</small>
+              </span>
+            </button>
+          </div>
+        </section>
+
         <section class="panel">
           <div class="panel-header">
             <div>
@@ -74,9 +101,36 @@
 
           <label class="field-label">第二步：已经发生了哪件事？</label>
           <div class="state-list">
-            <div>□ 已经转账或充值</div>
+            <div class="is-checked">☑ 已经转账或充值</div>
             <div>□ 给过验证码</div>
             <div>□ 正在屏幕共享</div>
+          </div>
+
+          <div class="urgent-guide">
+            <div class="urgent-guide-top">
+              <div>
+                <p class="urgent-label">先止损</p>
+                <h3>已经转账或充值</h3>
+              </div>
+              <span class="urgent-badge">现在做</span>
+            </div>
+            <p class="urgent-summary">先别再付第二笔钱，马上保存证据并报警。</p>
+            <div class="ordered-item">
+              <span class="number red-number">1</span>
+              <span>不要继续转账、充值或交保证金。</span>
+            </div>
+            <div class="ordered-item">
+              <span class="number red-number">2</span>
+              <span>保存聊天记录、收款账户、订单号和转账凭证。</span>
+            </div>
+            <div class="ordered-item">
+              <span class="number red-number">3</span>
+              <span>马上拨打 110，并联系银行或支付平台尝试止付。</span>
+            </div>
+            <div class="urgent-actions">
+              <button class="danger-button">拨打 110</button>
+              <button class="plain-button">复制给家人</button>
+            </div>
           </div>
 
           <button class="primary-button">帮我判断真的假的</button>
@@ -88,13 +142,53 @@
               <p class="eyebrow">第三步</p>
               <h2>看结果，照着做</h2>
             </div>
-            <span class="status-pill">待分析</span>
+            <span class="status-pill danger-status">高风险</span>
           </div>
 
-          <div class="empty-state">
-            <img src="/assets/logo-duck-minjin.png" alt="" />
-            <p>先把对方的话放进来，再点大按钮。结果会告诉你：像不像诈骗、现在先做哪几件事。</p>
+          <div class="risk-banner">
+            <strong>这很像诈骗，先别转账。</strong>
+            <span>先停下，不要按对方说的继续做。</span>
+            <div class="risk-tags">
+              <em>冒充客服退款/理赔诈骗</em>
+              <em>正在要求危险操作</em>
+            </div>
           </div>
+
+          <div class="sop-box">
+            <p class="box-title">现在只做这几件事</p>
+            <div class="ordered-item">
+              <span class="number red-number">1</span>
+              <span>不要点链接，不要填银行卡、密码、验证码。</span>
+            </div>
+            <div class="ordered-item">
+              <span class="number red-number">2</span>
+              <span>回到官方 App 或官方客服电话核实退款。</span>
+            </div>
+            <div class="ordered-item">
+              <span class="number red-number">3</span>
+              <span>已经转账或给过验证码，马上拨打 110。</span>
+            </div>
+          </div>
+
+          <div class="safety-box">
+            <p class="box-title">先保护自己</p>
+            <div class="safety-line">
+              <span>隐私</span>
+              <p>不要再给验证码、银行卡、身份证、密码或人脸识别。</p>
+            </div>
+            <div class="safety-line">
+              <span>核实</span>
+              <p>自己打开官方 App，不点对方发来的链接。</p>
+            </div>
+          </div>
+
+          <div class="quick-help">
+            <button class="danger-button">拨打 110</button>
+            <button class="plain-button">复制给家人</button>
+            <button class="plain-button">转发小程序</button>
+          </div>
+
+          <button class="detail-toggle">展开详细说明</button>
         </section>
       </section>
     </main>
