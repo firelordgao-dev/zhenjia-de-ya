@@ -14,11 +14,18 @@
   <view class="emergency">
     <view>
       <view class="eyebrow">先看这里</view>
-      <view class="emergency-title">已经转钱、给验证码、开屏幕共享，先别继续。</view>
+      <view class="emergency-title">转钱、给码、共享屏幕？先停。</view>
+    </view>
+    <view class="panic-visual">
+      <view wx:for="{{panicSteps}}" wx:key="title" class="panic-step">
+        <text class="panic-icon">{{item.icon}}</text>
+        <view class="panic-title">{{item.title}}</view>
+        <view class="panic-text">{{item.text}}</view>
+      </view>
     </view>
     <view class="emergency-actions">
-      <button class="danger-button" bindtap="callPolice">马上打 110</button>
-      <button class="plain-button" bindtap="callAntiFraud">咨询 96110</button>
+      <button class="danger-button" bindtap="callPolice">打 110</button>
+      <button class="plain-button" bindtap="callAntiFraud">问 96110</button>
     </view>
   </view>
 
@@ -37,21 +44,21 @@
         <text class="quick-symbol">文</text>
         <view class="quick-copy">
           <view class="quick-name">粘贴文字</view>
-          <view class="quick-desc">微信复制后点这里</view>
+          <view class="quick-desc">复制后点</view>
         </view>
       </button>
       <button class="quick-start-card" bindtap="chooseScreenshot">
         <text class="quick-symbol">图</text>
         <view class="quick-copy">
           <view class="quick-name">上传截图</view>
-          <view class="quick-desc">聊天截图也能识别</view>
+          <view class="quick-desc">截图识别</view>
         </view>
       </button>
       <button class="quick-start-card urgent-card" bindtap="showGeneralEmergencyGuide">
         <text class="quick-symbol urgent-symbol">停</text>
         <view class="quick-copy">
           <view class="quick-name">已经出事</view>
-          <view class="quick-desc">转账、给码、共享屏幕</view>
+          <view class="quick-desc">转钱/给码</view>
         </view>
       </button>
     </view>
@@ -90,7 +97,7 @@
     </view>
 
     <view class="privacy-note">
-      截图只用于识别文字。识别完成后，云函数会尽量删除临时上传的截图；请你自己保存原始聊天记录和转账凭证。
+      截图只识别文字，不长期保存。原始聊天和转账截图自己留好。
     </view>
 
     <view class="field-label">第二步：已经发生了哪件事？</view>
@@ -138,7 +145,7 @@
 
     <view wx:if="{{!analysis && !loading}}" class="empty-state">
       <image class="empty-mascot" src="/assets/logo-duck-minjin.png" mode="aspectFill" />
-      <view>先把对方的话放进来，再点大按钮。结果会告诉你：像不像诈骗、现在先做哪几件事。</view>
+      <view>放进可疑内容，点大按钮。先看图示，再照着点。</view>
     </view>
 
     <view wx:if="{{loading}}" class="loading-state">
@@ -156,11 +163,25 @@
         </view>
       </view>
 
+      <view wx:if="{{analysis.visual_steps && analysis.visual_steps.length}}" class="visual-guide">
+        <view wx:for="{{analysis.visual_steps}}" wx:key="title" class="visual-step">
+          <text class="panic-icon">{{item.icon}}</text>
+          <view class="panic-title">{{item.title}}</view>
+          <view class="panic-text">{{item.text}}</view>
+        </view>
+      </view>
+
       <view wx:if="{{analysis.display_sop_steps && analysis.display_sop_steps.length}}" class="sop-box">
-        <view class="box-title">现在只做这几件事</view>
-        <view wx:for="{{analysis.display_sop_steps}}" wx:key="*this" class="ordered-item">
-          <text class="number red-number">{{index + 1}}</text>
+        <view class="box-title">做完就点一下</view>
+        <view wx:for="{{analysis.display_sop_steps}}" wx:key="*this" class="action-check-row {{completedStepsMap[index] ? 'is-done' : ''}}" data-index="{{index}}" bindtap="toggleActionStep">
+          <text class="check-circle">{{completedStepsMap[index] ? '✓' : index + 1}}</text>
           <text>{{item}}</text>
+        </view>
+        <view class="progress-card">
+          <view class="progress-track">
+            <view class="progress-fill" style="width: {{actionProgressPercent}}%;"></view>
+          </view>
+          <view class="progress-text">{{actionProgressText}}</view>
         </view>
       </view>
 

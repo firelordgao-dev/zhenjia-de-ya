@@ -23,6 +23,12 @@ const stateOptions = [
   { value: "gaveIdCard", label: "给过身份证或银行卡" }
 ];
 
+const panicSteps = [
+  { icon: "停", title: "先停手", text: "不转钱" },
+  { icon: "存", title: "留证据", text: "截图留好" },
+  { icon: "找", title: "找人帮", text: "家人/110" }
+];
+
 const emergencyGuides = {
   general: {
     title: "已经转账、给验证码或共享屏幕",
@@ -70,6 +76,7 @@ Page({
   data: {
     scenarioOptions,
     stateOptions,
+    panicSteps,
     scenario: "chat",
     caseText: "",
     selectedStates: [],
@@ -86,6 +93,10 @@ Page({
     riskText: "风险提醒",
     detailExpanded: false,
     detailToggleText: "展开详细说明",
+    completedStepsMap: {},
+    completedCount: 0,
+    actionProgressPercent: 0,
+    actionProgressText: "",
     analysis: null
   },
 
@@ -340,21 +351,28 @@ Page({
 
   renderResult(analysis) {
     const riskText = riskCopy[analysis.risk_level] || "风险提醒";
+    const displayAnalysis = this.makeDisplayAnalysis(analysis);
     this.setData({
-      analysis: this.makeDisplayAnalysis(analysis),
+      analysis: displayAnalysis,
       riskText,
       statusText: riskText,
       detailExpanded: false,
-      detailToggleText: "展开详细说明"
+      detailToggleText: "展开详细说明",
+      completedStepsMap: {},
+      completedCount: 0,
+      actionProgressPercent: 0,
+      actionProgressText: this.makeActionProgressText(displayAnalysis, {})
     });
   },
 
   makeDisplayAnalysis(analysis) {
+    const sopSteps = this.takeList(analysis.sop_steps, 3);
     return {
       ...analysis,
-      display_sop_steps: this.takeList(analysis.sop_steps, 3),
-      display_privacy_step: this.firstItem(analysis.privacy_safety_steps),
-      display_verify_step: this.firstItem(analysis.official_verification_steps)
+      visual_steps: this.makeVisualSteps(analysis),
+      display_sop_steps: sopSteps.map((item) => this.shortActionText(item)),
+      display_privacy_step: this.shortSafetyText(this.firstItem(analysis.privacy_safety_steps)),
+      display_verify_step: this.shortSafetyText(this.firstItem(analysis.official_verification_steps))
     };
   },
 
@@ -364,6 +382,90 @@ Page({
 
   firstItem(value) {
     return Array.isArray(value) && value.length ? value[0] : "";
+  },
+
+  makeVisualSteps(analysis) {
+    if (analysis.case_stage === "remote_control" || analysis.scam_type === "remote_control") {
+      return [
+        { icon: "断", title: "断开", text: "关共享" },
+        { icon: "别", title: "别打开", text: "银行/短信" },
+        { icon: "找", title: "换机求助", text: "家人/110" }
+      ];
+    }
+
+    if (analysis.case_stage === "privacy_exposed") {
+      return [
+        { icon: "停", title: "别再给", text: "验证码/密码" },
+        { icon: "改", title: "改密码", text: "官方 App" },
+        { icon: "找", title: "找人帮", text: "银行/家人" }
+      ];
+    }
+
+    if (analysis.risk_level === "emergency" || analysis.case_stage === "money_lost") {
+      return [
+        { icon: "停", title: "停止付款", text: "别付第二笔" },
+        { icon: "存", title: "留证据", text: "截图/账号" },
+        { icon: "报", title: "打 110", text: "马上报警" }
+      ];
+    }
+
+    return panicSteps;
+  },
+
+  shortActionText(text) {
+    const value = String(text || "");
+    if (/屏幕共享|远程控制|远程协助|共享屏幕/.test(value)) return "关掉共享";
+    if (/转账|充值|垫|保证金|付款|汇款|提现|交钱/.test(value)) return "别再转钱";
+    if (/验证码|动态密码|短信码/.test(value)) return "别给验证码";
+    if (/银行卡|身份证|密码|人脸识别|刷脸/.test(value)) return "别给隐私";
+    if (/保存|截图|凭证|聊天记录|证据/.test(value)) return "留好截图";
+    if (/110|报警|警方|派出所/.test(value)) return "打 110";
+    if (/官方|客服|核实|银行|平台/.test(value)) return "走官方核实";
+    if (/家人|亲友/.test(value)) return "找家人一起看";
+    return value.length > 18 ? `${value.slice(0, 18)}...` : value;
+  },
+
+  shortSafetyText(text) {
+    const value = String(text || "");
+    if (/验证码|动态密码|短信码/.test(value)) return "验证码不要给。";
+    if (/银行卡|支付密码|取款密码/.test(value)) return "银行卡、密码别填。";
+    if (/身份证|人脸|刷脸/.test(value)) return "身份证、人脸先停。";
+    if (/屏幕共享|远程控制|权限/.test(value)) return "关共享，关陌生权限。";
+    if (/官方|链接|电话|客服/.test(value)) return "只走官方入口。";
+    if (/银行|冻结|改密|账户/.test(value)) return "联系银行或平台。";
+    return value.length > 20 ? `${value.slice(0, 20)}...` : value;
+  },
+
+  toggleActionStep(event) {
+    const index = String(event.currentTarget.dataset.index);
+    const completedStepsMap = {
+      ...this.data.completedStepsMap,
+      [index]: !this.data.completedStepsMap[index]
+    };
+    const completedCount = Object.keys(completedStepsMap).filter((key) => completedStepsMap[key]).length;
+
+    this.setData({
+      completedStepsMap,
+      completedCount,
+      actionProgressPercent: this.makeActionProgressPercent(this.data.analysis, completedCount),
+      actionProgressText: this.makeActionProgressText(this.data.analysis, completedStepsMap)
+    });
+  },
+
+  makeActionProgressPercent(analysis, completedCount) {
+    const total = analysis?.display_sop_steps?.length || 0;
+    if (!total) return 0;
+    return Math.round((completedCount / total) * 100);
+  },
+
+  makeActionProgressText(analysis, completedStepsMap) {
+    const total = analysis?.display_sop_steps?.length || 0;
+    if (!total) return "先按图示做。";
+
+    const completed = Object.keys(completedStepsMap).filter((key) => completedStepsMap[key]).length;
+    if (completed === 0) return "先点第 1 件。";
+    if (completed < total) return `已完成 ${completed}/${total}。`;
+    return "完成。留证，必要时打 110。";
   },
 
   toggleDetails() {

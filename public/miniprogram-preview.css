@@ -138,6 +138,68 @@ button,
   background: var(--danger-bg);
 }
 
+.panic-visual,
+.visual-guide {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 7px;
+  margin-top: 12px;
+}
+
+.visual-guide {
+  margin-top: 0;
+}
+
+.panic-step,
+.visual-step {
+  min-width: 0;
+  padding: 8px 4px;
+  border: 2px solid rgba(181, 40, 40, 0.28);
+  border-radius: 10px;
+  background: #fff;
+  text-align: center;
+}
+
+.visual-step {
+  border-color: rgba(210, 162, 58, 0.56);
+  background: var(--cream);
+}
+
+.panic-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 39px;
+  height: 39px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, var(--red), var(--red-dark));
+  color: #fff;
+  font-size: 17px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.visual-step .panic-icon {
+  background: linear-gradient(180deg, var(--teal), var(--teal-dark));
+}
+
+.panic-step strong,
+.visual-step strong {
+  display: block;
+  margin-top: 6px;
+  font-size: 15px;
+  line-height: 1.15;
+}
+
+.panic-step small,
+.visual-step small {
+  display: block;
+  margin-top: 3px;
+  color: var(--red-dark);
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
 .eyebrow {
   margin-bottom: 4px;
   color: var(--red-dark);
@@ -500,6 +562,71 @@ h2 {
 .sop-box {
   border-color: rgba(181, 40, 40, 0.3);
   background: #fff7f5;
+}
+
+.action-check-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-height: 44px;
+  margin-top: 8px;
+  padding: 8px;
+  border: 2px solid rgba(181, 40, 40, 0.28);
+  border-radius: 10px;
+  background: #fff;
+  font-weight: 900;
+  line-height: 1.5;
+}
+
+.action-check-row.is-done {
+  border-color: rgba(4, 109, 104, 0.42);
+  background: #eaf8f3;
+  color: var(--teal-dark);
+}
+
+.check-circle {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, var(--red), var(--red-dark));
+  color: #fff;
+  font-weight: 900;
+  flex: 0 0 auto;
+}
+
+.action-check-row.is-done .check-circle {
+  background: linear-gradient(180deg, var(--teal), var(--teal-dark));
+}
+
+.progress-card {
+  margin-top: 10px;
+  padding: 9px;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.progress-track {
+  height: 8px;
+  border-radius: 999px;
+  background: #f0d8d4;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  width: 0;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--red), var(--gold), var(--teal));
+}
+
+.progress-text {
+  margin-top: 6px;
+  color: var(--red-dark);
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1.45;
 }
 
 .safety-box {

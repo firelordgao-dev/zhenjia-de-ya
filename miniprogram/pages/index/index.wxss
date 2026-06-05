@@ -102,6 +102,68 @@
   background: #fff0ed;
 }
 
+.panic-visual,
+.visual-guide {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12rpx;
+  margin-top: 20rpx;
+}
+
+.visual-guide {
+  margin-top: 0;
+}
+
+.panic-step,
+.visual-step {
+  min-width: 0;
+  padding: 14rpx 8rpx;
+  border: 3rpx solid rgba(181, 40, 40, 0.28);
+  border-radius: 16rpx;
+  background: #ffffff;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.visual-step {
+  border-color: rgba(210, 162, 58, 0.56);
+  background: #fff8e5;
+}
+
+.panic-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 68rpx;
+  height: 68rpx;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #b52828, #8e1f1f);
+  color: #ffffff;
+  font-size: 30rpx;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.visual-step .panic-icon {
+  background: linear-gradient(180deg, #046d68, #034c49);
+}
+
+.panic-title {
+  margin-top: 10rpx;
+  color: #121815;
+  font-size: 28rpx;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.panic-text {
+  margin-top: 4rpx;
+  color: #8e1f1f;
+  font-size: 24rpx;
+  font-weight: 900;
+  line-height: 1.25;
+}
+
 .culture-strip {
   display: flex;
   align-items: center;
@@ -583,6 +645,73 @@
 .sop-box {
   background: #fff7f5;
   border-color: rgba(181, 40, 40, 0.3);
+}
+
+.action-check-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 14rpx;
+  min-height: 76rpx;
+  margin-top: 14rpx;
+  padding: 14rpx;
+  border: 3rpx solid rgba(181, 40, 40, 0.28);
+  border-radius: 16rpx;
+  background: #ffffff;
+  font-weight: 900;
+  line-height: 1.55;
+  box-sizing: border-box;
+}
+
+.action-check-row.is-done {
+  border-color: rgba(4, 109, 104, 0.42);
+  background: #eaf8f3;
+  color: #034c49;
+}
+
+.check-circle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46rpx;
+  height: 46rpx;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #b52828, #8e1f1f);
+  color: #ffffff;
+  font-weight: 900;
+  flex: 0 0 auto;
+}
+
+.action-check-row.is-done .check-circle {
+  background: linear-gradient(180deg, #046d68, #034c49);
+}
+
+.progress-card {
+  margin-top: 16rpx;
+  padding: 14rpx;
+  border-radius: 16rpx;
+  background: #ffffff;
+}
+
+.progress-track {
+  height: 14rpx;
+  border-radius: 999rpx;
+  background: #f0d8d4;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  width: 0;
+  border-radius: 999rpx;
+  background: linear-gradient(90deg, #b52828, #d2a23a, #046d68);
+}
+
+.progress-text {
+  margin-top: 10rpx;
+  color: #8e1f1f;
+  font-size: 29rpx;
+  font-weight: 900;
+  line-height: 1.45;
 }
 
 .safety-box {
