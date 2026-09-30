@@ -1,11 +1,11 @@
 # 真的假的鸭
 
-面向普通群众和老年人的微信小程序反诈助手。用户可以粘贴短信、微信聊天、电话话术、可疑链接，或上传截图识别文字；系统会先用本地规则做风险分级，再调用 DeepSeek V4 Flash/Pro 做反诈分析和适老化行动提醒。
+面向普通群众和老年人的微信小程序反诈助手。用户可以粘贴短信、微信聊天、电话话术、可疑链接，或上传截图；系统会先用本地规则做风险分级，文字判断走 DeepSeek V4 Flash，截图只用 MiniMax M3 做 OCR 和文字提取。
 
 当前仓库包含两部分：
 
 - `miniprogram/`：正式主线，微信小程序前端。
-- `cloudfunctions/`：小程序云函数，包含 DeepSeek 分析和 OCR 适配。
+- `cloudfunctions/`：小程序云函数，包含 DeepSeek V4 Flash 文字判断、MiniMax M3 截图 OCR 和规则兜底。
 - `public/` + `server/`：早期网页原型，保留用于本地演示。
 
 ## 微信小程序开发
@@ -22,10 +22,17 @@
 
 ### `analyzeCase` 环境变量
 
-- `DEEPSEEK_API_KEY`：DeepSeek API Key，必须放云函数环境变量，不能放小程序前端。
+- `MINIMAX_API_KEY`：MiniMax API Key，仅用于截图 OCR 和提取文字，必须放云函数环境变量，不能放小程序前端。
+- `MINIMAX_API_BASE`：默认 `https://api.minimaxi.com/v1`，与虾小龙 M3 视觉链路保持一致；如果你的 key 来自国际站控制台，可改为 `https://api.minimax.io/v1`。
+- `MINIMAX_CHAT_PATH`：默认 `/chat/completions`
+- `MINIMAX_MODEL`：默认 `MiniMax-M3`
+- `MINIMAX_GROUP_ID`：可选，仅在 MiniMax 控制台或工作区明确要求时配置。
+- `MINIMAX_ENABLE_THINKING`：可选，设为 `false` 时会发送 `thinking: { "type": "disabled" }`。
+- `MINIMAX_INLINE_IMAGE_MAX_BYTES`：可选，默认 `8388608`；截图会先转为 `data:image/...;base64,...` 再交给 M3 提取文字。
+- `MODEL_API_TIMEOUT_MS`：可选，默认 `40000`；图片识别较慢时用于避免云函数提前中断。
+- `DEEPSEEK_API_KEY`：DeepSeek API Key，文字判断主通道，必须放云函数环境变量，不能放小程序前端。
 - `DEEPSEEK_API_BASE`：默认 `https://api.deepseek.com`
 - `DEEPSEEK_FLASH_MODEL`：默认 `deepseek-v4-flash`
-- `DEEPSEEK_PRO_MODEL`：默认 `deepseek-v4-pro`
 
 ### `ocrImage` 环境变量
 
@@ -46,20 +53,23 @@ npm run dev
 
 ## 当前能力
 
+- 单小程序多入口：首页分流，`真假判断` 负责输入，`判断结果` 负责行动建议，活动二维码/首页卡片进入 5 题闯关模式
 - 粘贴文本或链接进行诈骗风险分析
 - 支持从微信剪贴板粘贴聊天内容
+- 微信小程序上传截图后，`analyzeCase` 会先用 MiniMax M3 提取文字，再交给 DeepSeek V4 Flash 做文字判断
 - 微信小程序上传截图后，可通过云函数 OCR 识别文字
-- OCR 识别完成后，云函数会尽量删除临时上传的截图
-- 第一屏提供适老化快速入口：粘贴文字、上传截图、紧急止损
-- 首屏和结果页加入“停 / 存 / 找”三格图示急救卡，减少慌张状态下的阅读负担
+- OCR 或文字判断完成后，云函数会尽量删除临时上传的截图
+- 首页提供适老化分流入口：马上判断、已经出事、活动闯关
+- 判断结果页加入“停 / 存 / 找”三格图示急救卡，减少慌张状态下的阅读负担
 - 分析结果可一键分享/复制给家人
 - 默认适老化界面：大字、大按钮、高对比、单线流程
 - 小程序视觉加入克制的公益文化元素：深红、金线、书页、同心守护纹样
 - 紧急场景优先提示停止操作、拨打 `110`、咨询 `96110`
 - 选择“已转账 / 给过验证码 / 正在屏幕共享”等紧急状态后，立即展示止损步骤，不等待 AI 分析
-- 结果页将“现在只做这几件事”做成可勾选完成清单，帮助老人逐步确认已经做完的止损动作
+- 活动闯关模式支持 5 题真假挑战、答题进度、反诈等级、盖章领奖提示、成绩复制和转发
+- 判断页专注收集文字/截图/已发生状态，结果页将“现在只做这几件事”做成可勾选完成清单，帮助老人逐步确认已经做完的止损动作
 - 本地规则引擎保底判断
-- DeepSeek Flash + Pro 双模型路由
+- DeepSeek V4 Flash 负责文字判断；MiniMax M3 仅负责截图 OCR 和文字提取
 - 识别常见诈骗类型：冒充公检法、客服退款/理赔、刷单返利、投资理财、屏幕共享/远程控制、钓鱼链接
 - 判断当前阶段：早期核实、危险操作请求、隐私可能泄露、资金已风险、正在远程控制
 - 按诈骗类型输出固定止损 SOP，并同步到结果页和可转发家属的话
@@ -77,6 +87,16 @@ npm run dev
 - `miniprogram/assets/icon-duck-minjin-192.png`：小程序顶部品牌图标。
 - `public/assets/logo-duck-minjin-bold.svg`：红金书页与公益徽章更突出的矢量探索稿。
 - `public/assets/logo-duck-minjin-bold-preview.png`：上述探索稿的 PNG 预览图。
+- `miniprogram/assets/design-iterations/`：本轮民进反诈公益鸭图标迭代稿归档。
+- `miniprogram/assets/concept-boards/`：活动 IP、wildcard 方向板和总览图。
+- `miniprogram/assets/landing-kit/`：C 区扫码闯关落地物料概念稿，包括展架、任务卡/印章、小程序成绩页和礼品延展。
+- `output/pdf/zhenjiade-ya-wildcard-concepts-12.pdf`：12 张大胆方向板打包 PDF。
+- `output/vendor-package/2026-06-07/`：广告公司交付包，包含 47 份 `pdf-print/` 核版 PDF、47 张 `png-preview/` 校对图、`contact-sheet.png` 总览图、`README_VENDOR.md` 制作说明、`production-spec.csv`/`production-spec.md` 下单规格表，以及 `handoff/` 活动物料交接手册、现场执行清单、最终信息回填、印前签核和完成度审计。
+- `docs/VISUAL_DESIGN_ASSETS.md`：视觉探索约束、文件索引和推荐方向。
+
+## 活动资料
+
+- `docs/ACTIVITY_SOURCE_DIGEST.md`：2026-06-07 学习的 6 份活动资料摘要，覆盖 V5 执行手册、主持词、情景剧题库、各区 SOP、预算和 PPT 方案。
 
 ## 重要边界
 
@@ -85,7 +105,7 @@ npm run dev
 ## 隐私策略草案
 
 - 小程序前端不保存用户输入的聊天内容。
-- DeepSeek API Key 只放在 `analyzeCase` 云函数环境变量中，不能放进小程序前端。
-- 截图仅用于 OCR 识别；`ocrImage` 云函数识别完成或失败后都会尝试删除临时上传文件。
+- MiniMax / DeepSeek API Key 只放在 `analyzeCase` 云函数环境变量中，不能放进小程序前端。
+- 截图仅用于 OCR 和文字提取；`analyzeCase` 和 `ocrImage` 云函数处理完成或失败后都会尝试删除临时上传文件。
 - 目前不主动落库保存分析记录。后续若要做家属守护、历史记录或反馈闭环，需要先增加明确授权和删除机制。
 - 前端和分享文案会持续提醒：不要把验证码、银行卡、身份证、密码、人脸识别或屏幕共享交给陌生人。

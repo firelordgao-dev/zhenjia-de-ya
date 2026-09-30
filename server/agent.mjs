@@ -1,5 +1,5 @@
 import { buildRuleFallback, analyzeWithRules, policeNotice } from "./riskRules.mjs";
-import { chatCompletion, getDeepSeekConfig, parseModelJson } from "./deepseekClient.mjs";
+import { chatCompletion, getModelProviders, parseModelJson } from "./deepseekClient.mjs";
 
 const SYSTEM_PROMPT = `你是“真的假的鸭”的反诈分析 agent，服务对象是普通群众和老年人。
 你的任务：根据用户提供的短信、聊天、电话话术、链接或事件描述，判断诈骗风险并给出清晰行动建议。
@@ -29,63 +29,54 @@ export async function analyzeCase(input) {
   const normalized = normalizeInput(input);
   const rules = analyzeWithRules(normalized);
   const fallback = buildRuleFallback(normalized);
-  const config = getDeepSeekConfig();
+  const providers = getModelProviders();
   const usedModels = [];
+  const providerWarnings = [];
 
-  if (!config.apiKey) {
+  if (!providers.length) {
     return {
       analysis: fallback,
-      meta: buildMeta({ rules, usedModels, mode: "rules_only", warning: "DEEPSEEK_API_KEY 未配置" })
+      meta: buildMeta({ rules, usedModels, mode: "rules_only", warning: "MINIMAX_API_KEY 和 DEEPSEEK_API_KEY 均未配置" })
     };
   }
 
-  try {
-    const flashResult = await runModelAnalysis({
-      model: config.flashModel,
-      normalized,
-      rules,
-      previous: null
-    });
-    usedModels.push(config.flashModel);
-
-    let analysis = sanitizeAnalysis(flashResult, fallback);
-
-    const shouldUsePro =
-      rules.shouldEscalateToPro ||
-      ["high", "emergency"].includes(analysis.risk_level) ||
-      analysis.confidence < 0.62;
-
-    if (shouldUsePro) {
-      const proResult = await runModelAnalysis({
-        model: config.proModel,
+  for (const provider of providers) {
+    try {
+      const modelResult = await runModelAnalysis({
+        provider,
         normalized,
-        rules,
-        previous: analysis
+        rules
       });
-      usedModels.push(config.proModel);
-      analysis = sanitizeAnalysis(proResult, analysis);
+      usedModels.push(provider.model);
+
+      const analysis = enforceSafetyFloor(sanitizeAnalysis(modelResult, fallback), rules);
+      return {
+        analysis,
+        meta: buildMeta({
+          rules,
+          usedModels,
+          mode: makeMode(provider, providerWarnings),
+          warning: providerWarnings.join("；") || undefined
+        })
+      };
+    } catch (error) {
+      usedModels.push(provider.model);
+      providerWarnings.push(`${provider.name}: ${error.message}`);
     }
-
-    analysis = enforceSafetyFloor(analysis, rules);
-
-    return {
-      analysis,
-      meta: buildMeta({ rules, usedModels, mode: "deepseek" })
-    };
-  } catch (error) {
-    return {
-      analysis: {
-        ...fallback,
-        model_note: "大模型调用失败，已使用本地规则引擎给出保底判断。"
-      },
-      meta: buildMeta({
-        rules,
-        usedModels,
-        mode: "rules_fallback",
-        warning: error.message
-      })
-    };
   }
+
+  return {
+    analysis: {
+      ...fallback,
+      model_note: "大模型调用失败，已使用本地规则引擎给出保底判断。"
+    },
+    meta: buildMeta({
+      rules,
+      usedModels,
+      mode: "rules_fallback",
+      warning: providerWarnings.join("；")
+    })
+  };
 }
 
 function normalizeInput(input = {}) {
@@ -104,7 +95,7 @@ function normalizeInput(input = {}) {
   };
 }
 
-async function runModelAnalysis({ model, normalized, rules, previous }) {
+async function runModelAnalysis({ provider, normalized, rules }) {
   const messages = [
     { role: "system", content: SYSTEM_PROMPT },
     {
@@ -120,8 +111,7 @@ async function runModelAnalysis({ model, normalized, rules, previous }) {
             risk_level: rules.riskLevel,
             hits: rules.hits.map((hit) => hit.label),
             has_emergency_state: rules.hasEmergencyState
-          },
-          previous_analysis: previous
+          }
         },
         null,
         2
@@ -129,8 +119,15 @@ async function runModelAnalysis({ model, normalized, rules, previous }) {
     }
   ];
 
-  const response = await chatCompletion({ model, messages });
+  const response = await chatCompletion({ provider, messages });
   return parseModelJson(response.content);
+}
+
+function makeMode(provider, warnings) {
+  if (provider.name === "deepseek" && warnings.some((item) => item.startsWith("minimax:"))) {
+    return "minimax_deepseek_fallback";
+  }
+  return provider.name;
 }
 
 function sanitizeAnalysis(candidate, fallback) {

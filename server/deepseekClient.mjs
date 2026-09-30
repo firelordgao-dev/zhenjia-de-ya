@@ -34,58 +34,126 @@ export function loadEnvFile(cwd = process.cwd()) {
 export function getDeepSeekConfig() {
   loadEnvFile();
   return {
-    apiKey: process.env.DEEPSEEK_API_KEY || "",
-    apiBase: process.env.DEEPSEEK_API_BASE || "https://api.deepseek.com",
-    flashModel: process.env.DEEPSEEK_FLASH_MODEL || "deepseek-v4-flash",
-    proModel: process.env.DEEPSEEK_PRO_MODEL || "deepseek-v4-pro"
+    apiKey: envValue("DEEPSEEK_API_KEY"),
+    apiBase: envValue("DEEPSEEK_API_BASE", "https://api.deepseek.com"),
+    flashModel: envValue("DEEPSEEK_FLASH_MODEL", "deepseek-v4-flash")
   };
 }
 
-export async function chatCompletion({ model, messages, temperature = 0.2, maxTokens = 1200 }) {
-  const config = getDeepSeekConfig();
-  if (!config.apiKey) {
-    throw new Error("Missing DEEPSEEK_API_KEY");
+export function getModelProviders() {
+  loadEnvFile();
+  const providers = [];
+
+  const minimaxApiKey = envValue("MINIMAX_API_KEY");
+  if (minimaxApiKey) {
+    providers.push({
+      name: "minimax",
+      apiKey: minimaxApiKey,
+      apiBase: normalizeMiniMaxApiBase(envValue("MINIMAX_API_BASE", "https://api.minimaxi.com/v1")),
+      path: envValue("MINIMAX_CHAT_PATH", "/chat/completions"),
+      model: envValue("MINIMAX_MODEL", "MiniMax-M3"),
+      temperature: envNumber("MINIMAX_TEMPERATURE", 0.2),
+      maxCompletionTokens: envNumber("MINIMAX_MAX_COMPLETION_TOKENS", 1200)
+    });
+  }
+
+  if (envValue("DEEPSEEK_API_KEY")) {
+    const config = getDeepSeekConfig();
+    providers.push({
+      name: "deepseek",
+      apiKey: config.apiKey,
+      apiBase: config.apiBase,
+      path: "/chat/completions",
+      model: config.flashModel,
+      temperature: envNumber("DEEPSEEK_TEMPERATURE", 0.2),
+      maxCompletionTokens: envNumber("DEEPSEEK_MAX_TOKENS", 1200)
+    });
+  }
+
+  return providers;
+}
+
+export async function chatCompletion({ provider, messages }) {
+  if (!provider?.apiKey) {
+    throw new Error("Missing provider API key");
   }
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 25000);
+  const base = provider.apiBase.replace(/\/$/, "");
+  const pathPart = provider.path.startsWith("/") ? provider.path : `/${provider.path}`;
+  const body = buildProviderBody(provider, messages);
 
   try {
-    const response = await fetch(`${config.apiBase.replace(/\/$/, "")}/chat/completions`, {
+    const response = await fetch(`${base}${pathPart}`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${config.apiKey}`,
+        Authorization: `Bearer ${provider.apiKey}`,
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({
-        model,
-        messages,
-        temperature,
-        max_tokens: maxTokens,
-        response_format: { type: "json_object" }
-      }),
+      body: JSON.stringify(body),
       signal: controller.signal
     });
 
     const raw = await response.text();
     if (!response.ok) {
-      throw new Error(`DeepSeek API ${response.status}: ${raw.slice(0, 500)}`);
+      throw new Error(`${provider.name} API ${response.status}: ${raw.slice(0, 500)}`);
     }
 
     const data = JSON.parse(raw);
     const content = data?.choices?.[0]?.message?.content;
     if (!content) {
-      throw new Error("DeepSeek API returned empty content");
+      throw new Error(`${provider.name} API returned empty content`);
     }
 
     return {
       content,
       usage: data.usage,
-      model: data.model || model
+      model: data.model || provider.model
     };
   } finally {
     clearTimeout(timer);
   }
+}
+
+function buildProviderBody(provider, messages) {
+  const body = {
+    model: provider.model,
+    messages,
+    temperature: provider.temperature,
+    max_completion_tokens: provider.maxCompletionTokens
+  };
+
+  if (provider.name === "deepseek") {
+    body.max_tokens = provider.maxCompletionTokens;
+    body.response_format = { type: "json_object" };
+  }
+
+  if (provider.name === "minimax") {
+    body.stream = false;
+    if (envValue("MINIMAX_ENABLE_THINKING") === "false") {
+      body.thinking = { type: "disabled" };
+    }
+  }
+
+  return body;
+}
+
+function envValue(name, fallback = "") {
+  const value = String(process.env[name] || "").trim();
+  if (!value || /^\$\{[A-Z0-9_]+\}$/.test(value)) return fallback;
+  return value;
+}
+
+function envNumber(name, fallback) {
+  const value = envValue(name);
+  if (!value) return fallback;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function normalizeMiniMaxApiBase(value) {
+  return String(value || "").replace("api.minimax.com", "api.minimaxi.com");
 }
 
 export function parseModelJson(content) {

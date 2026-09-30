@@ -1,246 +1,63 @@
-<view class="page">
-  <view class="topbar">
-    <view class="brand">
-      <image class="brand-icon" src="/assets/icon-duck-minjin-192.png" mode="aspectFill" />
-      <view class="brand-copy">
-        <view class="brand-title">真的假的鸭</view>
-        <view class="brand-subtitle">拿不准，先停下，问一问</view>
-        <view class="service-chip">社会服务 · 反诈守护</view>
+<view class="home-page">
+  <view class="hero">
+    <view class="hero-ribbon">公益反诈活动助手</view>
+    <view class="hero-top">
+      <image class="hero-icon" src="/assets/icon-duck-minjin-192.png" mode="aspectFill" />
+      <view class="hero-copy">
+        <view class="hero-title">真的假的鸭</view>
+        <view class="hero-subtitle">转账、验证码、屏幕共享之前，先停下问一问。</view>
       </view>
     </view>
-    <button class="call-button" bindtap="callPolice">拨打 110</button>
-  </view>
-
-  <view class="emergency">
-    <view>
-      <view class="eyebrow">先看这里</view>
-      <view class="emergency-title">转钱、给码、共享屏幕？先停。</view>
-    </view>
-    <view class="panic-visual">
-      <view wx:for="{{panicSteps}}" wx:key="title" class="panic-step">
-        <text class="panic-icon">{{item.icon}}</text>
-        <view class="panic-title">{{item.title}}</view>
-        <view class="panic-text">{{item.text}}</view>
-      </view>
-    </view>
-    <view class="emergency-actions">
-      <button class="danger-button" bindtap="callPolice">打 110</button>
-      <button class="plain-button" bindtap="callAntiFraud">问 96110</button>
+    <image class="hero-visual" src="/assets/activity-guide-duck.jpg" mode="aspectFill" />
+    <view class="hero-actions">
+      <view class="danger-button" bindtap="callPolice">拨打 110</view>
+      <view class="plain-button" bindtap="callAntiFraud">咨询 96110</view>
     </view>
   </view>
 
-  <view class="culture-strip" aria-hidden="true">
-    <view class="culture-dot"></view>
-    <view class="culture-line"></view>
-    <view class="culture-book"></view>
-    <view class="culture-line"></view>
-    <view class="culture-dot"></view>
-  </view>
-
-  <view class="quick-start">
-    <view class="quick-start-title">现在先选一个</view>
-    <view class="quick-start-grid">
-      <button class="quick-start-card" bindtap="pasteFromClipboard">
-        <text class="quick-symbol">文</text>
-        <view class="quick-copy">
-          <view class="quick-name">粘贴文字</view>
-          <view class="quick-desc">复制后点</view>
-        </view>
-      </button>
-      <button class="quick-start-card" bindtap="chooseScreenshot">
-        <text class="quick-symbol">图</text>
-        <view class="quick-copy">
-          <view class="quick-name">上传截图</view>
-          <view class="quick-desc">截图识别</view>
-        </view>
-      </button>
-      <button class="quick-start-card urgent-card" bindtap="showGeneralEmergencyGuide">
-        <text class="quick-symbol urgent-symbol">停</text>
-        <view class="quick-copy">
-          <view class="quick-name">已经出事</view>
-          <view class="quick-desc">转钱/给码</view>
-        </view>
-      </button>
+  <view class="emergency-card" bindtap="goEmergencyCheck">
+    <view class="emergency-mark">停</view>
+    <view class="emergency-copy">
+      <view class="card-title">已经转账、给码或共享屏幕？</view>
+      <view class="card-desc">先看止损步骤，再判断真假。</view>
     </view>
   </view>
 
-  <view class="panel">
-    <view class="panel-header">
-      <view>
-        <view class="eyebrow">第一步</view>
-        <view class="section-title">对方让你做什么？</view>
+  <view class="intent-list">
+    <view class="intent-card primary-intent" bindtap="goCheck">
+      <text class="intent-symbol">判</text>
+      <view class="intent-copy">
+        <view class="intent-title">马上判断</view>
+        <view class="intent-desc">粘贴聊天、短信、链接，或上传截图。</view>
       </view>
-      <button class="small-button" bindtap="loadSample">看示例</button>
+      <text class="intent-arrow">›</text>
     </view>
 
-    <view class="scenario-grid">
-      <button wx:for="{{scenarioOptions}}" wx:key="value" class="scenario-card {{scenario === item.value ? 'is-selected' : ''}}" data-scenario="{{item.value}}" bindtap="selectScenario">
-        {{item.label}}
-      </button>
-    </view>
-
-    <view class="field-label">把可疑内容粘贴或打在这里</view>
-    <view class="input-tools">
-      <button class="plain-button" bindtap="pasteFromClipboard">粘贴微信复制的内容</button>
-    </view>
-    <textarea class="case-textarea" value="{{caseText}}" bindinput="onTextInput" placeholder="例如：对方说我是客服，快递丢了要给我退款，让我点链接、填银行卡，还要把验证码发给他。" maxlength="-1" auto-height="{{false}}" />
-
-    <view class="upload-row">
-      <button class="upload-button" bindtap="chooseScreenshot">加截图</button>
-      <view class="upload-hint">先把截图留好，报警或找家人时有用。</view>
-    </view>
-    <view wx:if="{{imageName}}" class="image-chip">{{imageName}}</view>
-
-    <view wx:if="{{imagePath}}" class="ocr-panel">
-      <button class="plain-button" loading="{{ocrLoading}}" disabled="{{ocrLoading}}" bindtap="recognizeImage">识别截图文字</button>
-      <view class="ocr-status">{{ocrStatus}}</view>
-    </view>
-
-    <view class="privacy-note">
-      截图只识别文字，不长期保存。原始聊天和转账截图自己留好。
-    </view>
-
-    <view class="field-label">第二步：已经发生了哪件事？</view>
-    <checkbox-group class="state-group" bindchange="onStateChange">
-      <label wx:for="{{stateOptions}}" wx:key="value" class="state-item">
-        <checkbox value="{{item.value}}" checked="{{selectedStatesMap[item.value]}}" color="#046d68" />
-        <text>{{item.label}}</text>
-      </label>
-    </checkbox-group>
-
-    <view wx:if="{{urgentGuide}}" class="urgent-guide">
-      <view class="urgent-guide-top">
-        <view>
-          <view class="urgent-label">先止损</view>
-          <view class="urgent-title">{{urgentGuide.title}}</view>
-        </view>
-        <view class="urgent-badge">现在做</view>
-      </view>
-      <view class="urgent-summary">{{urgentGuide.summary}}</view>
-      <view class="urgent-steps">
-        <view wx:for="{{urgentGuide.steps}}" wx:key="*this" class="ordered-item">
-          <text class="number red-number">{{index + 1}}</text>
-          <text>{{item}}</text>
-        </view>
-      </view>
-      <view class="urgent-actions">
-        <button class="danger-button" bindtap="callPolice">拨打 110</button>
-        <button class="plain-button" bindtap="copyUrgentGuide">复制给家人</button>
-      </view>
-    </view>
-
-    <button class="primary-button" loading="{{loading}}" disabled="{{loading}}" bindtap="analyze">
-      帮我判断真的假的
-    </button>
   </view>
 
-  <view class="panel result-panel">
-    <view class="panel-header">
-      <view>
-        <view class="eyebrow">第三步</view>
-        <view class="section-title">看结果，照着做</view>
+  <view class="safe-note">
+    <view class="safe-title">先记住三件事</view>
+    <view class="safe-grid">
+      <view class="safe-item">
+        <text>不转钱</text>
       </view>
-      <view class="status-pill">{{statusText}}</view>
+      <view class="safe-item">
+        <text>不报码</text>
+      </view>
+      <view class="safe-item">
+        <text>不共享屏幕</text>
+      </view>
     </view>
+  </view>
 
-    <view wx:if="{{!analysis && !loading}}" class="empty-state">
-      <image class="empty-mascot" src="/assets/logo-duck-minjin.png" mode="aspectFill" />
-      <view>放进可疑内容，点大按钮。先看图示，再照着点。</view>
-    </view>
-
-    <view wx:if="{{loading}}" class="loading-state">
-      <view class="spinner"></view>
-      <view>正在检查风险点...</view>
-    </view>
-
-    <view wx:if="{{analysis}}" class="result-content">
-      <view class="risk-banner risk-{{analysis.risk_level}}">
-        <view class="risk-label">{{riskText}}</view>
-        <view class="risk-summary">{{analysis.summary}}</view>
-        <view wx:if="{{analysis.scam_type_label || analysis.case_stage_label}}" class="risk-tags">
-          <text wx:if="{{analysis.scam_type_label}}">{{analysis.scam_type_label}}</text>
-          <text wx:if="{{analysis.case_stage_label}}">{{analysis.case_stage_label}}</text>
-        </view>
+  <view class="activity-section">
+    <view class="intent-card activity-intent" bindtap="goActivityChallenge">
+      <text class="intent-symbol public-symbol">学</text>
+      <view class="intent-copy">
+        <view class="intent-title">公益反诈小测</view>
+        <view class="intent-desc">5 个常见场景，现场学习用，不收费、不留隐私。</view>
       </view>
-
-      <view wx:if="{{analysis.visual_steps && analysis.visual_steps.length}}" class="visual-guide">
-        <view wx:for="{{analysis.visual_steps}}" wx:key="title" class="visual-step">
-          <text class="panic-icon">{{item.icon}}</text>
-          <view class="panic-title">{{item.title}}</view>
-          <view class="panic-text">{{item.text}}</view>
-        </view>
-      </view>
-
-      <view wx:if="{{analysis.display_sop_steps && analysis.display_sop_steps.length}}" class="sop-box">
-        <view class="box-title">做完就点一下</view>
-        <view wx:for="{{analysis.display_sop_steps}}" wx:key="*this" class="action-check-row {{completedStepsMap[index] ? 'is-done' : ''}}" data-index="{{index}}" bindtap="toggleActionStep">
-          <text class="check-circle">{{completedStepsMap[index] ? '✓' : index + 1}}</text>
-          <text>{{item}}</text>
-        </view>
-        <view class="progress-card">
-          <view class="progress-track">
-            <view class="progress-fill" style="width: {{actionProgressPercent}}%;"></view>
-          </view>
-          <view class="progress-text">{{actionProgressText}}</view>
-        </view>
-      </view>
-
-      <view wx:if="{{analysis.display_privacy_step || analysis.display_verify_step}}" class="safety-box">
-        <view class="box-title">先保护自己</view>
-        <view wx:if="{{analysis.display_privacy_step}}" class="safety-line">
-          <text class="safety-key">隐私</text>
-          <text>{{analysis.display_privacy_step}}</text>
-        </view>
-        <view wx:if="{{analysis.display_verify_step}}" class="safety-line">
-          <text class="safety-key">核实</text>
-          <text>{{analysis.display_verify_step}}</text>
-        </view>
-      </view>
-
-      <view class="quick-help">
-        <button class="danger-button" bindtap="callPolice">拨打 110</button>
-        <button class="plain-button" bindtap="copyFamilyMessage">复制给家人</button>
-        <button class="plain-button" open-type="share">转发小程序</button>
-      </view>
-
-      <button class="detail-toggle" bindtap="toggleDetails">{{detailToggleText}}</button>
-
-      <view wx:if="{{detailExpanded}}" class="detail-panel">
-        <view class="detail-panel-title">详细说明</view>
-
-        <view class="next-step-box">
-          <view class="box-title">其他提醒</view>
-          <view wx:for="{{analysis.recommended_actions}}" wx:key="*this" class="ordered-item">
-            <text class="number">{{index + 1}}</text>
-            <text>{{item}}</text>
-          </view>
-        </view>
-
-        <view class="police-box">
-          <view class="box-title">报警提醒</view>
-          <view>{{analysis.police_notice}}</view>
-        </view>
-
-        <view wx:if="{{analysis.judgement_basis && analysis.judgement_basis.length}}" class="detail-box">
-          <view class="box-title">判断依据</view>
-          <view wx:for="{{analysis.judgement_basis}}" wx:key="*this" class="list-item">• {{item}}</view>
-        </view>
-
-        <view class="detail-box">
-          <view class="box-title">哪里危险</view>
-          <view wx:for="{{analysis.red_flags}}" wx:key="*this" class="list-item">• {{item}}</view>
-        </view>
-
-        <view class="detail-box">
-          <view class="box-title">先保存这些证据</view>
-          <view wx:for="{{analysis.evidence_to_keep}}" wx:key="*this" class="list-item">• {{item}}</view>
-        </view>
-
-        <view class="family-box">
-          <view class="box-title">发给家人的话</view>
-          <view>{{analysis.family_message}}</view>
-        </view>
-      </view>
+      <text class="intent-arrow">›</text>
     </view>
   </view>
 </view>
