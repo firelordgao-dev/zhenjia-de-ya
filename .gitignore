@@ -3,3 +3,11 @@ node_modules/
 .DS_Store
 Thumbs.db
 *.log
+
+# Local delivery materials remain in the full checkpoint, outside source PRs.
+/output/
+/tmp/
+/project.private.config.json
+/public/assets/concept-boards/
+/public/assets/design-iterations/
+/public/assets/landing-kit/

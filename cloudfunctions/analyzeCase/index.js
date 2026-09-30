@@ -207,53 +207,91 @@ const SYSTEM_PROMPT = `你是“真的假的鸭”的反诈分析 agent，服务
 }`;
 
 exports.main = async (event = {}) => {
-  const normalized = normalizeInput(event);
-  const rules = analyzeWithRules(normalized);
-  const scamProfile = detectScamType(normalized, rules);
-  const privacyProfile = detectPrivacyRisks(normalized);
-  const caseStage = detectCaseStage(normalized, rules, privacyProfile);
-  const fallback = buildRuleFallback(normalized, rules, scamProfile, privacyProfile, caseStage);
+  const imageFileIDs = normalizeImageFileIDs(event.imageFileIDs);
 
-  if (!process.env.DEEPSEEK_API_KEY) {
-    return {
-      analysis: fallback,
-      meta: buildMeta({ rules, scamProfile, privacyProfile, caseStage, mode: "rules_only", usedModels: [], warning: "DEEPSEEK_API_KEY 未配置" })
-    };
-  }
-
-  const usedModels = [];
   try {
-    const flashModel = process.env.DEEPSEEK_FLASH_MODEL || "deepseek-v4-flash";
-    const proModel = process.env.DEEPSEEK_PRO_MODEL || "deepseek-v4-pro";
+    const imageUrls = await resolveImageUrls(event);
 
-    const flash = await runModelAnalysis(flashModel, normalized, rules, scamProfile, privacyProfile, caseStage, null);
-    usedModels.push(flashModel);
-    let analysis = sanitizeAnalysis(flash, fallback);
-
-    const shouldUsePro =
-      rules.shouldEscalateToPro ||
-      ["high", "emergency"].includes(analysis.risk_level) ||
-      analysis.confidence < 0.62;
-
-    if (shouldUsePro) {
-      const pro = await runModelAnalysis(proModel, normalized, rules, scamProfile, privacyProfile, caseStage, analysis);
-      usedModels.push(proModel);
-      analysis = sanitizeAnalysis(pro, analysis);
+    if (event.ocrOnly) {
+      return await runOcrExtraction(imageUrls, imageFileIDs);
     }
 
-    analysis = enforceSafetyFloor(analysis, rules, scamProfile, privacyProfile, caseStage);
-    return {
-      analysis,
-      meta: buildMeta({ rules, scamProfile, privacyProfile, caseStage, mode: "deepseek", usedModels })
-    };
-  } catch (error) {
+    let normalized = normalizeInput({ ...event, imageUrls });
+    const usedModels = [];
+    const providerWarnings = [];
+    const imageOcr = await extractImageTextForAnalysis(imageUrls);
+    if (imageOcr.model) usedModels.push(imageOcr.model);
+    if (imageOcr.text) {
+      normalized = appendImageText(normalized, imageOcr.text);
+    } else if (imageUrls.length && imageOcr.error) {
+      providerWarnings.push(`ocr: ${imageOcr.error}`);
+    }
+
+    const rules = analyzeWithRules(normalized);
+    const scamProfile = detectScamType(normalized, rules);
+    const privacyProfile = detectPrivacyRisks(normalized);
+    const caseStage = detectCaseStage(normalized, rules, privacyProfile);
+    const fallback = buildRuleFallback(normalized, rules, scamProfile, privacyProfile, caseStage);
+    const providers = getTextAnalysisProviders();
+
+    if (!providers.length) {
+      return {
+        analysis: fallback,
+        meta: buildMeta({
+          rules,
+          scamProfile,
+          privacyProfile,
+          caseStage,
+          mode: "rules_only",
+          usedModels,
+          imageCount: normalized.imageUrls.length,
+          warning: providerWarnings.concat("DEEPSEEK_API_KEY 未配置；MiniMax 仅用于图片 OCR，不用于文字判断").join("；")
+        })
+      };
+    }
+
+    for (const provider of providers) {
+      try {
+        const result = await runModelAnalysis(provider, normalized, rules, scamProfile, privacyProfile, caseStage);
+        usedModels.push(provider.model);
+        const analysis = enforceSafetyFloor(sanitizeAnalysis(result, fallback), rules, scamProfile, privacyProfile, caseStage);
+        return {
+          analysis,
+          meta: buildMeta({
+            rules,
+            scamProfile,
+            privacyProfile,
+            caseStage,
+            mode: makeAnalysisMode(provider, providerWarnings, normalized.imageUrls.length, imageOcr.text),
+            usedModels,
+            imageCount: normalized.imageUrls.length,
+            warning: providerWarnings.join("；") || undefined
+          })
+        };
+      } catch (error) {
+        usedModels.push(provider.model);
+        providerWarnings.push(`${provider.name}: ${error.message}`);
+      }
+    }
+
     return {
       analysis: {
         ...fallback,
         model_note: "大模型调用失败，已使用本地规则引擎给出保底判断。"
       },
-      meta: buildMeta({ rules, scamProfile, privacyProfile, caseStage, mode: "rules_fallback", usedModels, warning: error.message })
+      meta: buildMeta({
+        rules,
+        scamProfile,
+        privacyProfile,
+        caseStage,
+        mode: "rules_fallback",
+        usedModels,
+        imageCount: normalized.imageUrls.length,
+        warning: providerWarnings.join("；")
+      })
     };
+  } finally {
+    await deleteUploadedFiles(imageFileIDs);
   }
 };
 
@@ -264,8 +302,169 @@ function normalizeInput(input) {
     userStates: Array.isArray(input.userStates) ? input.userStates.slice(0, 12) : [],
     imageNotes: Array.isArray(input.imageNotes)
       ? input.imageNotes.map((item) => String(item).slice(0, 120)).slice(0, 5)
+      : [],
+    imageUrls: Array.isArray(input.imageUrls)
+      ? input.imageUrls.map((item) => String(item).trim()).filter(isSafeImageUrl).slice(0, 9)
       : []
   };
+}
+
+async function resolveImageUrls(event) {
+  const directUrls = Array.isArray(event.imageUrls) ? event.imageUrls : [];
+  const fileIDs = normalizeImageFileIDs(event.imageFileIDs);
+
+  if (!fileIDs.length) return directUrls;
+
+  const inlineUrls = await resolveImageDataUrls(fileIDs, event.ocrOnly ? 1 : 3);
+  if (inlineUrls.length) {
+    return [...directUrls, ...inlineUrls];
+  }
+
+  try {
+    const cloud = require("wx-server-sdk");
+    cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
+    const temp = await cloud.getTempFileURL({ fileList: fileIDs });
+    const resolved = (temp.fileList || []).map((item) => item.tempFileURL).filter(Boolean);
+    return [...directUrls, ...resolved];
+  } catch {
+    return directUrls;
+  }
+}
+
+async function resolveImageDataUrls(fileIDs, limit) {
+  const maxBytes = envNumber("MINIMAX_INLINE_IMAGE_MAX_BYTES", 8 * 1024 * 1024);
+
+  try {
+    const cloud = require("wx-server-sdk");
+    cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
+
+    const urls = [];
+    for (const fileID of fileIDs.slice(0, limit)) {
+      const downloaded = await cloud.downloadFile({ fileID });
+      const content = downloaded?.fileContent;
+      const buffer = Buffer.isBuffer(content) ? content : Buffer.from(content || "");
+      if (!buffer.length || buffer.length > maxBytes) continue;
+
+      urls.push(makeImageDataUrl(buffer, fileID));
+    }
+    return urls;
+  } catch (error) {
+    console.warn("[analyzeCase] inline image resolve failed:", error.message || error);
+    return [];
+  }
+}
+
+function makeImageDataUrl(buffer, fileID) {
+  return `data:${inferImageMime(fileID)};base64,${buffer.toString("base64")}`;
+}
+
+function inferImageMime(fileID) {
+  const value = String(fileID || "").toLowerCase();
+  if (/\.(png)(\?|$)/.test(value)) return "image/png";
+  if (/\.(webp)(\?|$)/.test(value)) return "image/webp";
+  if (/\.(gif)(\?|$)/.test(value)) return "image/gif";
+  return "image/jpeg";
+}
+
+function normalizeImageFileIDs(value) {
+  return Array.isArray(value) ? value.map((item) => String(item || "").trim()).filter(Boolean).slice(0, 9) : [];
+}
+
+async function deleteUploadedFiles(fileIDs) {
+  if (!fileIDs.length) return false;
+
+  try {
+    const cloud = require("wx-server-sdk");
+    cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
+    await cloud.deleteFile({ fileList: fileIDs });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function isSafeImageUrl(value) {
+  return /^https?:\/\//i.test(value) || /^data:image\/[a-z0-9.+-]+;base64,[A-Za-z0-9+/=]+$/i.test(value);
+}
+
+function appendImageText(normalized, imageText) {
+  const text = String(imageText || "").trim();
+  if (!text) return normalized;
+
+  const block = `【截图提取文字】\n${text}`;
+  return {
+    ...normalized,
+    text: normalized.text ? `${normalized.text}\n\n${block}` : block
+  };
+}
+
+function getModelProviders() {
+  const providers = [];
+  const minimaxApiKey = envValue("MINIMAX_API_KEY");
+
+  if (minimaxApiKey) {
+    providers.push({
+      name: "minimax",
+      apiKey: minimaxApiKey,
+      groupId: envValue("MINIMAX_GROUP_ID"),
+      apiBase: normalizeMiniMaxApiBase(envValue("MINIMAX_API_BASE", "https://api.minimaxi.com/v1")),
+      path: envValue("MINIMAX_CHAT_PATH", "/chat/completions"),
+      model: envValue("MINIMAX_MODEL", "MiniMax-M3"),
+      maxCompletionTokens: envNumber("MINIMAX_MAX_COMPLETION_TOKENS", 1600),
+      temperature: envNumber("MINIMAX_TEMPERATURE", 0.2),
+      multimodal: true
+    });
+  }
+
+  const deepseekApiKey = envValue("DEEPSEEK_API_KEY");
+  if (deepseekApiKey) {
+    providers.push({
+      name: "deepseek",
+      apiKey: deepseekApiKey,
+      apiBase: envValue("DEEPSEEK_API_BASE", "https://api.deepseek.com"),
+      path: "/chat/completions",
+      model: envValue("DEEPSEEK_FLASH_MODEL", "deepseek-v4-flash"),
+      maxCompletionTokens: envNumber("DEEPSEEK_MAX_TOKENS", 1600),
+      temperature: envNumber("DEEPSEEK_TEMPERATURE", 0.2),
+      multimodal: false
+    });
+  }
+
+  return providers;
+}
+
+function getTextAnalysisProviders() {
+  return getModelProviders().filter((provider) => provider.name === "deepseek");
+}
+
+function envValue(name, fallback = "") {
+  const value = String(process.env[name] || "").trim();
+  if (!value || /^\$\{[A-Z0-9_]+\}$/.test(value)) return fallback;
+  return value;
+}
+
+function envNumber(name, fallback) {
+  const value = envValue(name);
+  if (!value) return fallback;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function normalizeMiniMaxApiBase(value) {
+  return String(value || "").replace("api.minimax.com", "api.minimaxi.com");
+}
+
+function makeMode(provider, warnings) {
+  if (provider.name === "deepseek" && warnings.some((item) => item.startsWith("minimax:"))) {
+    return "minimax_deepseek_fallback";
+  }
+  return provider.name;
+}
+
+function makeAnalysisMode(provider, warnings, imageCount, imageText) {
+  if (provider.name === "deepseek" && imageCount && imageText) return "deepseek_with_ocr";
+  if (provider.name === "deepseek" && warnings.some((item) => item.startsWith("ocr:"))) return "deepseek_ocr_warning";
+  return provider.name;
 }
 
 function analyzeWithRules({ text = "", userStates = [] }) {
@@ -306,7 +505,7 @@ function analyzeWithRules({ text = "", userStates = [] }) {
     riskLevel,
     hits,
     hasEmergencyState: hasEmergencyState || hasEmergencyText,
-    shouldEscalateToPro: riskLevel === "high" || riskLevel === "emergency" || text.length > 900
+    shouldEscalateModel: riskLevel === "high" || riskLevel === "emergency" || text.length > 900
   };
 }
 
@@ -345,7 +544,7 @@ function detectScamType({ text = "", userStates = [] }, rules) {
     matched: best.matched,
     candidates: ranked
       .filter((item) => item.score > 0)
-      .slice(0, 3)
+      .slice(0, 9)
       .map((item) => ({
         type: item.type,
         label: item.label,
@@ -456,7 +655,7 @@ function buildRuleFallback(input, rules, scamProfile, privacyProfile, caseStage)
     privacy_safety_steps: privacyProfile.steps,
     privacy_notice: privacyProfile.notice,
     family_message: makeFamilyMessage(rules.riskLevel),
-    model_note: "当前结果来自本地规则引擎。配置 DEEPSEEK_API_KEY 后会启用大模型复核。"
+    model_note: "当前结果来自本地规则引擎。配置 DEEPSEEK_API_KEY 后会启用 DeepSeek V4 Flash 做文字判断；配置 MINIMAX_API_KEY 后仅用于截图 OCR 和提取文字。"
   };
 }
 
@@ -517,42 +716,44 @@ function policeNotice(riskLevel) {
   return "如果后续出现转账、验证码、屏幕共享、陌生 App 或继续催付款，请先停止操作；一旦已经造成损失或泄露重要信息，请立即拨打 110 报警。";
 }
 
-async function runModelAnalysis(model, normalized, rules, scamProfile, privacyProfile, caseStage, previous) {
-  const response = await deepSeekChat({
-    model,
+async function runModelAnalysis(provider, normalized, rules, scamProfile, privacyProfile, caseStage) {
+  const payloadText = JSON.stringify(
+    {
+      case_text: normalized.text,
+      scenario: normalized.scenario,
+      user_states: normalized.userStates,
+      uploaded_image_notes: normalized.imageNotes,
+      uploaded_image_count: normalized.imageUrls.length,
+      rule_engine: {
+        score: rules.score,
+        risk_level: rules.riskLevel,
+        hits: rules.hits.map((hit) => hit.label),
+        has_emergency_state: rules.hasEmergencyState
+      },
+      scam_type_candidate: {
+        type: scamProfile.type,
+        label: scamProfile.label,
+        candidates: scamProfile.candidates,
+        suggested_sop: scamProfile.sop
+      },
+      case_stage_candidate: caseStage,
+      privacy_candidate: {
+        risks: privacyProfile.risks,
+        safety_steps: privacyProfile.steps,
+        notice: privacyProfile.notice
+      }
+    },
+    null,
+    2
+  );
+
+  const response = await chatCompletion(provider, {
+    model: provider.model,
     messages: [
       { role: "system", content: SYSTEM_PROMPT },
       {
         role: "user",
-        content: JSON.stringify(
-          {
-            case_text: normalized.text,
-            scenario: normalized.scenario,
-            user_states: normalized.userStates,
-            uploaded_image_notes: normalized.imageNotes,
-            rule_engine: {
-              score: rules.score,
-              risk_level: rules.riskLevel,
-              hits: rules.hits.map((hit) => hit.label),
-              has_emergency_state: rules.hasEmergencyState
-            },
-            scam_type_candidate: {
-              type: scamProfile.type,
-              label: scamProfile.label,
-              candidates: scamProfile.candidates,
-              suggested_sop: scamProfile.sop
-            },
-            case_stage_candidate: caseStage,
-            privacy_candidate: {
-              risks: privacyProfile.risks,
-              safety_steps: privacyProfile.steps,
-              notice: privacyProfile.notice
-            },
-            previous_analysis: previous
-          },
-          null,
-          2
-        )
+        content: makeUserContent(provider, payloadText, normalized.imageUrls)
       }
     ]
   });
@@ -560,39 +761,200 @@ async function runModelAnalysis(model, normalized, rules, scamProfile, privacyPr
   return parseModelJson(response);
 }
 
-function deepSeekChat(payload) {
-  const apiBase = process.env.DEEPSEEK_API_BASE || "https://api.deepseek.com";
-  const url = new URL("/chat/completions", apiBase);
-  const body = JSON.stringify({
-    ...payload,
-    temperature: 0.2,
-    max_tokens: 1600,
-    response_format: { type: "json_object" }
+function makeUserContent(provider, payloadText, imageUrls) {
+  if (!provider.multimodal || !imageUrls.length) return payloadText;
+
+  const maxImages = 3;
+  const selectedUrls = imageUrls.slice(0, maxImages);
+  const remaining = imageUrls.length - selectedUrls.length;
+  let text = `${payloadText}\n\n请同时检查随附截图中的文字、号码、链接、二维码或转账页面线索。`;
+  if (remaining > 0) {
+    text += `\n（用户还上传了${remaining}张其他截图，请基于上述截图和文字内容综合分析）`;
+  }
+
+  return [
+    { type: "text", text },
+    ...selectedUrls.map((url) => ({
+      type: "image_url",
+      image_url: {
+        url,
+        detail: "default"
+      }
+    }))
+  ];
+}
+
+async function extractImageTextForAnalysis(imageUrls) {
+  if (!imageUrls.length) return { text: "" };
+
+  const result = await runOcrExtraction(imageUrls.slice(0, 1), []);
+  return {
+    text: String(result.text || "").trim(),
+    error: result.error,
+    model: result.model,
+    provider: result.provider
+  };
+}
+
+async function runOcrExtraction(imageUrls, imageFileIDs) {
+  if (!imageUrls.length) {
+    return { text: "", error: "没有上传截图" };
+  }
+
+  const providers = getModelProviders().filter((p) => p.multimodal);
+  if (!providers.length) {
+    return { text: "", error: "没有配置支持图片的模型，无法提取文字。" };
+  }
+
+  const provider = providers[0];
+  const ocrPrompt = `请提取这张截图中的所有文字内容。要求：
+1. 只输出截图中的文字原文，不要分析、不要加任何解释。
+2. 如果截图包含聊天记录、短信、链接、号码、二维码或转账页面，请完整保留所有文字。
+3. 如果文字不清楚，尽可能推测并标注[不确定]。
+4. 不要输出 JSON，只输出纯文字。`;
+
+  try {
+    const payload = {
+      model: provider.model,
+      messages: [
+        { role: "system", content: ocrPrompt },
+        {
+          role: "user",
+          content: [
+            { type: "text", text: "请提取这张截图中的所有文字。" },
+            ...imageUrls.slice(0, 1).map((url) => ({
+              type: "image_url",
+              image_url: {
+                url,
+                detail: "default"
+              }
+            }))
+          ]
+        }
+      ]
+    };
+
+    console.log("[analyzeCase] OCR request body:", JSON.stringify({
+      model: payload.model,
+      messageCount: payload.messages.length,
+      hasImage: true,
+      provider: provider.name,
+      groupId: provider.groupId || "(未配置)"
+    }));
+
+    const response = await chatCompletion(provider, payload);
+    return { text: String(response || "").trim(), model: provider.model, provider: provider.name };
+  } catch (error) {
+    const msg = error.message || "";
+    console.error("[analyzeCase] OCR error:", msg);
+
+    if (/invalid api key|2049|unauthorized|401/i.test(msg)) {
+      return {
+        text: "",
+        model: provider.model,
+        provider: provider.name,
+        error: "截图识别暂时失败：MiniMax 图片通道认证未通过（2049）。请检查 MINIMAX_API_BASE 与 API Key 是否同属一个区域，也可以直接分析截图。"
+      };
+    }
+
+    return { text: "", model: provider.model, provider: provider.name, error: `提取文字失败：${msg}` };
+  }
+}
+
+function chatCompletion(provider, payload) {
+  const base = provider.apiBase.replace(/\/$/, "");
+  const path = provider.path.startsWith("/") ? provider.path : `/${provider.path}`;
+  const url = new URL(`${base}${path}`);
+  const body = JSON.stringify(buildProviderBody(provider, payload));
+  const headers = {
+    Authorization: `Bearer ${provider.apiKey}`,
+    "Content-Type": "application/json",
+    "Content-Length": Buffer.byteLength(body)
+  };
+
+  console.log("[analyzeCase] HTTP request:", {
+    url: url.toString(),
+    method: "POST",
+    headers: Object.keys(headers),
+    bodyLength: Buffer.byteLength(body),
+    bodyPreview: makeSafeBodyPreview(body)
   });
 
   return requestJson(url, {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${process.env.DEEPSEEK_API_KEY}`,
-      "Content-Type": "application/json",
-      "Content-Length": Buffer.byteLength(body)
-    },
+    headers,
     body
   }).then((data) => {
-    const content = data?.choices?.[0]?.message?.content;
-    if (!content) throw new Error("DeepSeek API returned empty content");
+    console.log("[analyzeCase] HTTP response status:", data?.status || "OK");
+
+    // 检查 MiniMax 的 base_resp 错误
+    if (data?.base_resp?.status_code !== 0 && data?.base_resp?.status_code !== undefined) {
+      throw new Error(`${provider.name} API error: ${data.base_resp.status_msg} (code: ${data.base_resp.status_code})`);
+    }
+
+    // 检查多种可能的响应路径
+    const choice = data?.choices?.[0];
+    if (!choice) {
+      console.error("[analyzeCase] No choices in response:", JSON.stringify(data, null, 2));
+      throw new Error(`${provider.name} API returned no choices`);
+    }
+
+    const message = choice.message || choice.delta;
+    if (!message) {
+      console.error("[analyzeCase] No message in choice:", JSON.stringify(choice, null, 2));
+      throw new Error(`${provider.name} API returned no message`);
+    }
+
+    const content = message.content || message.text || message.reasoning_content || "";
+    if (!content) {
+      console.error("[analyzeCase] Empty content in message:", JSON.stringify(message, null, 2));
+      throw new Error(`${provider.name} API returned empty content`);
+    }
+
     return content;
   });
 }
 
+function makeSafeBodyPreview(body) {
+  return body
+    .replace(/data:image\/[a-z0-9.+-]+;base64,[A-Za-z0-9+/=]+/gi, "data:image/...;base64,[redacted]")
+    .slice(0, 500);
+}
+
+function buildProviderBody(provider, payload) {
+  const body = {
+    ...payload,
+    temperature: provider.temperature
+  };
+
+  if (provider.name === "deepseek") {
+    body.max_tokens = provider.maxCompletionTokens;
+    body.response_format = { type: "json_object" };
+  }
+
+  if (provider.name === "minimax") {
+    body.max_completion_tokens = provider.maxCompletionTokens;
+    if (provider.groupId) {
+      body.group_id = provider.groupId;
+    }
+    body.stream = false;
+    if (envValue("MINIMAX_ENABLE_THINKING") === "false") {
+      body.thinking = { type: "disabled" };
+    }
+  }
+
+  return body;
+}
+
 function requestJson(url, options) {
+  const timeout = envNumber("MODEL_API_TIMEOUT_MS", 40000);
   return new Promise((resolve, reject) => {
     const req = https.request(
       url,
       {
         method: options.method,
         headers: options.headers,
-        timeout: 25000
+        timeout
       },
       (res) => {
         let raw = "";
@@ -602,7 +964,7 @@ function requestJson(url, options) {
         });
         res.on("end", () => {
           if (res.statusCode < 200 || res.statusCode >= 300) {
-            reject(new Error(`DeepSeek API ${res.statusCode}: ${raw.slice(0, 300)}`));
+            reject(new Error(`API ${res.statusCode}: ${raw.slice(0, 300)}`));
             return;
           }
           try {
@@ -616,7 +978,7 @@ function requestJson(url, options) {
 
     req.on("error", reject);
     req.on("timeout", () => {
-      req.destroy(new Error("DeepSeek API timeout"));
+      req.destroy(new Error("Model API timeout"));
     });
     req.write(options.body);
     req.end();
@@ -723,10 +1085,11 @@ function uniqueList(items) {
   return [...new Set(items.filter(Boolean))];
 }
 
-function buildMeta({ rules, scamProfile, privacyProfile, caseStage, mode, usedModels, warning }) {
+function buildMeta({ rules, scamProfile, privacyProfile, caseStage, mode, usedModels, imageCount, warning }) {
   return {
     mode,
     used_models: usedModels,
+    image_count: imageCount || 0,
     rule_score: rules.score,
     rule_level: rules.riskLevel,
     rule_hits: rules.hits.map((hit) => hit.label),

@@ -8,6 +8,22 @@
 
 更新：2026-06-05 已将首屏和结果页进一步图示化，加入“停 / 存 / 找”三格急救卡，减少真实受骗场景中的阅读负担。
 
+更新：2026-06-07 已整理民进反诈公益日视觉探索资产，新增 12 张大胆方向板、活动执行手册启发稿、PDF 打包文件和视觉资产索引。
+
+更新：2026-06-07 已学习 6 份活动资料，新增 `docs/ACTIVITY_SOURCE_DIGEST.md`，沉淀活动骨架、三板块 SOP、小程序现场流程、题库、预算和视觉物料启发。
+
+更新：2026-06-07 已新增 C 区扫码闯关落地物料概念稿 `miniprogram/assets/landing-kit/` 与 `public/assets/landing-kit/`，覆盖扫码展架、任务卡/印章、小程序成绩页和礼品延展。
+
+更新：2026-06-07 已接入 MiniMax M3 与 DeepSeek V4 Flash。
+
+更新：2026-06-14 已修正模型路由：纯文字判断走 DeepSeek V4 Flash；上传截图时 MiniMax M3 仅负责 OCR 和提取文字，提取后的文字再交给 DeepSeek 判断；DeepSeek 不可用时继续用本地规则引擎保底。
+
+更新：2026-06-07 已新增活动闯关模式 `pages/activity/activity`：单小程序双入口，默认首页继续做反诈助手，活动二维码/首页卡片进入 5 题真假挑战、成绩等级和盖章领奖流程。
+
+更新：2026-06-08 已重排小程序信息架构：首页只做分流，新增 `pages/check/check` 负责文字/截图/状态输入，新增 `pages/result/result` 负责风险结果、三步行动、拨号和复制给家人。
+
+更新：2026-06-07 已新增广告公司交付包 `output/vendor-package/2026-06-07/`：47 份 PDF 核版稿、47 张 PNG 校对图、总览图、制作说明、生产规格表和 `handoff/` 交接/签核/完成度审计文件，覆盖主会场、导视、A/B/C 区、互动卡片、执行安全、现场执行补充和礼品延展；交付口径明确不使用 SVG 或 AI 概念图承载正式文字。
+
 ## 当前定位
 
 “真的假的鸭”是一个面向普通群众，尤其是老年人的微信小程序反诈助手。
@@ -19,6 +35,11 @@
 主线是微信小程序，不是网页。
 
 - `miniprogram/`：微信小程序前端
+- `miniprogram/pages/index/`：首页分流入口
+- `miniprogram/pages/check/`：真假判断输入页
+- `miniprogram/pages/result/`：判断结果和行动清单页
+- `miniprogram/pages/activity/`：C 区扫码闯关活动入口
+- `miniprogram/lib/activityChallenge.js`：活动题库、计分、等级和分享文案
 - `cloudfunctions/`：微信云函数
 - `public/` + `server/`：本地网页原型和视觉预览，仅用于调试和演示
 
@@ -32,19 +53,25 @@ http://localhost:5177/miniprogram-preview.html
 
 品牌主角：无帽呆毛小鸭。
 
-核心符号：
+当前视觉探索以“金融反诈公益日”和“真的假的鸭”小程序挑战为主，不再把单一机构徽章做成强中心符号。完整资产索引见 `docs/VISUAL_DESIGN_ASSETS.md`，活动资料摘要见 `docs/ACTIVITY_SOURCE_DIGEST.md`。
 
-- 放大镜：识别真假
-- 蓝盾白勾：安全守护
-- 红金绶带、同心书页胸章：公益文化服务气质
-- 页面红金细节、书页、同心线：弱化但可感知的民进相关公益文化元素
+最新落地方向是 C 区 `landing-kit`：把无帽小鸭作为扫码闯关主持人，将“扫码 -> 5 题 -> 即时反馈 -> 等级成绩 -> 盖章领奖 -> 礼品兑换”串成一套现场物料系统，而不是继续单点 logo 探索。
+
+核心符号池：
+
+- 小鸭：亲和、可爱、面向老人和学生都不紧张的公益 IP
+- 书页、课堂、剧场、印章、任务卡：公益教育、校园/社区活动和“闯关识别真假”
+- 银行卡、手机安全门诊、转账暂停令、证据袋、风险雷达：金融反诈、识别真假和止损
+- 柔和红金、书页光芒、同心弧线：隐晦表达民进相关的教育、文化和社会服务气质
+- 暖蓝、青绿、米白：降低早期强蓝强红版本的冷感和压迫感
 
 重要边界：
 
 - 不直接使用民进官方会徽或官方标志
 - 不写“中国民主促进会”或“民进”作为 logo 主元素
 - 不做政府 App、公安 App 或官方执法工具的视觉感
-- 页面可以使用“社会服务 · 反诈守护”这类弱关联表达
+- 单张图内不重复堆叠同类符号，避免视觉疲劳
+- 避免警察帽、侦探帽、放大镜、恐怖诈骗场景、水印和海报式文字堆叠
 
 ## 当前技术链路
 
@@ -54,11 +81,15 @@ http://localhost:5177/miniprogram-preview.html
 
 能力：
 
-- 第一屏快速入口：粘贴文字、上传截图、紧急止损
+- 首页快速分流：马上判断、已经出事、活动闯关
+- 判断页承接粘贴文字、上传截图、状态勾选和紧急止损提示
+- 结果页承接风险等级、三步行动、110/96110、复制给家人和折叠详情
+- 首页保留轻量“活动闯关”卡片，进入 C 区 5 题挑战
 - 首屏紧急提醒图示化：停手、留证据、找人帮
 - 粘贴微信复制内容
 - 上传截图
-- OCR 识别截图文字
+- 上传截图后会先交给 MiniMax M3 做 OCR 和文字提取
+- OCR 提取后的文字再随原文交给 DeepSeek V4 Flash 做反诈判断
 - 勾选紧急状态
 - 勾选紧急状态后即时展示止损卡片，不等待 AI 分析
 - 调用反诈分析云函数
@@ -69,13 +100,26 @@ http://localhost:5177/miniprogram-preview.html
 - 结果页“现在只做这几件事”支持逐项勾选，显示已完成进度和下一步短提示
 - 结果页先展示三格图示急救卡，再展示可勾选短命令，完整解释继续折叠
 
+### 活动闯关模式
+
+页面：`miniprogram/pages/activity/`
+
+能力：
+
+- 5 题真假挑战，覆盖验证码、官方核实、安全账户、屏幕共享和留证据
+- 每题选择“真的/假的”后即时展示解释
+- 顶部展示 5 格进度，完成后展示得分和反诈等级
+- 结果页提供“凭此页盖章领奖”、再玩一次、复制成绩和分享
+- 题库、计分、等级和分享文案集中在 `miniprogram/lib/activityChallenge.js`
+
 ### 云函数
 
 `cloudfunctions/analyzeCase`
 
 - 本地规则引擎保底判断
-- DeepSeek V4 Flash 基础分析
-- 高风险/复杂情况用 DeepSeek V4 Pro 复核
+- DeepSeek V4 Flash 是文字判断主通道
+- MiniMax M3 仅用于截图 OCR 和提取文字
+- 两个模型通道都不可用时返回本地规则结果
 - 识别常见诈骗类型：冒充公检法、客服退款/理赔、刷单返利、投资理财、屏幕共享/远程控制、钓鱼链接
 - 判断当前阶段：早期核实、危险操作请求、隐私可能泄露、资金已风险、正在远程控制
 - 按诈骗类型输出固定止损 SOP
@@ -87,15 +131,22 @@ http://localhost:5177/miniprogram-preview.html
 - 小程序上传截图到微信云存储
 - 云函数调用微信服务市场 OCR
 - 识别完成或失败后尝试删除临时上传截图
+- `ocrImage` 是备用入口；`analyzeCase` 的截图分析链路内置 MiniMax OCR，不再把截图作为多模态判断内容直接交给 MiniMax
 
 ## 环境变量
 
 `analyzeCase` 云函数：
 
+- `MINIMAX_API_KEY`
+- `MINIMAX_API_BASE`
+- `MINIMAX_CHAT_PATH`
+- `MINIMAX_MODEL`
+- `MINIMAX_GROUP_ID`
+- `MINIMAX_ENABLE_THINKING`
+- `MINIMAX_INLINE_IMAGE_MAX_BYTES`
 - `DEEPSEEK_API_KEY`
 - `DEEPSEEK_API_BASE`
 - `DEEPSEEK_FLASH_MODEL`
-- `DEEPSEEK_PRO_MODEL`
 
 `ocrImage` 云函数：
 
@@ -104,7 +155,7 @@ http://localhost:5177/miniprogram-preview.html
 - `OCR_TYPE`
 - `OCR_DATA_TYPE`
 
-注意：`DEEPSEEK_API_KEY` 只能放在云函数环境变量或本地 `.env`，不要放进小程序前端。
+注意：`MINIMAX_API_KEY` 和 `DEEPSEEK_API_KEY` 只能放在云函数环境变量或本地 `.env`，不要放进小程序前端。
 
 ## 已验证
 
@@ -115,10 +166,15 @@ http://localhost:5177/miniprogram-preview.html
 - `analyzeCase` 可输出疑似诈骗类型和固定止损 SOP
 - `analyzeCase` 可输出当前阶段、判断依据、官方核实步骤和个人隐私安全提醒
 - 未发生损失的强可疑话术归为高风险，已转账/已泄露/正在共享等事实归为紧急风险
-- 本地临时注入 DeepSeek key 后，`analyzeCase` 可以返回 `emergency`
+- 已新增 provider 路由测试：纯文字直接走 DeepSeek V4 Flash；截图先走 MiniMax M3 OCR，再走 DeepSeek V4 Flash；MiniMax 域名和环境变量占位符只在 OCR 通道验证；无 key 时规则引擎保底
+- 已新增活动闯关逻辑测试：验证 5 题题库、计分、进度、等级和分享文案
 - 小程序视觉预览页可以在本地浏览器打开
+- `output/pdf/zhenjiade-ya-wildcard-concepts-12.pdf` 已生成并可渲染，包含 12 张 wildcard 方向板、总览页和活动执行手册启发稿
+- `output/ad-company-imagegen/2026-06-08/` 已形成当前优先使用的 imagegen 位图广告公司交付包，生产入口已扩展到 19 件：C 区扫码闯关、任务卡/印章、小程序成绩页、礼品延展、主舞台背景板、A 区防骗驿站、B 区青春盾牌、现场总导视、手举牌/拍照框、A 区隐私提示桌牌、案例展板、A2 扫码引导海报、口诀卡/题卡、志愿者手卡、领奖排队台卡、主横幅、拍摄授权/短视频提示、现场识别牌、主持手卡；旧 `vendor-package` 和 `final-materials-v3` 不作为最终稿使用
+- `output/ad-company-imagegen/2026-06-08/handoff/` 已补广告公司执行文件：执行手册、制作规格报价清单、二维码替换清单、印前签核表、现场装箱分发表和交付审计记录
+- `output/ad-company-imagegen/2026-06-08/handoff/06-生产就绪缺口审计.md` 已明确哪些物料可直接核版、哪些套组必须拆成单件刀版、哪些内容需要项目方补充，避免广告公司把拆版理解为重新设计
 
-## 明天重点深挖
+## 后续重点深挖
 
 建议从以下问题展开：
 

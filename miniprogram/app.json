@@ -1,5 +1,5 @@
 {
-  "pages": ["pages/index/index"],
+  "pages": ["pages/index/index", "pages/check/check", "pages/result/result", "pages/activity/activity"],
   "window": {
     "navigationBarTitleText": "真的假的鸭",
     "navigationBarBackgroundColor": "#f4f5ef",
@@ -7,5 +7,6 @@
     "backgroundColor": "#f4f5ef"
   },
   "style": "v2",
+  "lazyCodeLoading": "requiredComponents",
   "sitemapLocation": "sitemap.json"
 }

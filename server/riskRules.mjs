@@ -108,7 +108,7 @@ export function analyzeWithRules({ text = "", userStates = [] }) {
     riskLevel,
     hits,
     hasEmergencyState,
-    shouldEscalateToPro: riskLevel === "high" || riskLevel === "emergency" || normalizedText.length > 900
+    shouldEscalateModel: riskLevel === "high" || riskLevel === "emergency" || normalizedText.length > 900
   };
 }
 
@@ -139,7 +139,7 @@ export function buildRuleFallback({ text = "", userStates = [] }) {
       "快递单、合同、二维码或下载链接"
     ],
     family_message: makeFamilyMessage(rules.riskLevel),
-    model_note: "当前结果来自本地规则引擎。配置 DEEPSEEK_API_KEY 后会启用大模型复核。"
+    model_note: "当前结果来自本地规则引擎。配置 MINIMAX_API_KEY 后会启用 MiniMax M3 分析；配置 DEEPSEEK_API_KEY 后可启用 fallback。"
   };
 }
 

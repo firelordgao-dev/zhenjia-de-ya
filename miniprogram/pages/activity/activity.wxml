@@ -1,0 +1,78 @@
+<view class="activity-page">
+  <view class="activity-topbar">
+    <view class="activity-brand">
+      <image class="activity-icon" src="/assets/icon-duck-minjin-192.png" mode="aspectFill" />
+      <view>
+        <view class="activity-title">真的假的鸭</view>
+        <view class="activity-subtitle">公益反诈小测</view>
+      </view>
+    </view>
+    <button class="assistant-link" bindtap="goAssistant">反诈助手</button>
+  </view>
+
+  <view class="activity-hero">
+    <image class="hero-duck" src="/assets/activity-guide-duck.jpg" mode="aspectFill" />
+    <view class="hero-copy">
+      <view class="hero-kicker">公益活动学习区</view>
+      <view class="hero-title">5 个场景，练一练怎么判断</view>
+      <view class="hero-note">不收费、不留隐私；遇到转账、验证码、屏幕共享，先停下核实。</view>
+    </view>
+  </view>
+
+  <view class="progress-panel">
+    <view wx:for="{{progress}}" wx:key="index" class="progress-dot {{item.done ? 'is-done' : ''}} {{item.correct ? 'is-correct' : ''}}">
+      <text>{{item.done ? (item.correct ? '✓' : '×') : item.index}}</text>
+    </view>
+  </view>
+
+  <view wx:if="{{!isFinished}}" class="question-panel">
+    <view class="question-meta">第 {{currentIndex + 1}} / {{questions.length}} 题</view>
+    <view class="question-title">{{currentQuestion.title}}</view>
+    <view class="question-scene">{{currentQuestion.scene}}</view>
+
+    <view class="option-grid">
+      <view
+        wx:for="{{currentQuestion.options}}"
+        wx:key="value"
+        class="option-card {{selectedValue === item.value ? 'is-selected' : ''}}"
+        data-value="{{item.value}}"
+        bindtap="chooseOption"
+      >
+        <text class="option-token option-{{item.value}}">{{item.label}}</text>
+        <text class="option-text">{{item.value === 'true' ? '我觉得是真的' : '我觉得是假的'}}</text>
+      </view>
+    </view>
+
+    <view wx:if="{{answeredCurrent}}" class="explain-box {{currentCorrect ? 'is-good' : 'is-warn'}}">
+      <view class="explain-title">{{currentCorrect ? '答对了' : '这题要小心'}}</view>
+      <view class="explain-text">{{currentQuestion.explanation}}</view>
+    </view>
+
+    <button class="primary-action" bindtap="nextQuestion">{{currentIndex + 1 >= questions.length ? '看学习结果' : '下一题'}}</button>
+  </view>
+
+  <view wx:if="{{isFinished}}" class="result-panel">
+    <view class="result-ribbon">学习完成</view>
+    <view class="score-card">
+      <view class="score-number">{{score}}/{{questions.length}}</view>
+      <view class="level-name">{{level.label}}</view>
+      <view class="level-summary">{{level.summary}}</view>
+    </view>
+
+    <view class="stamp-card">
+      <view class="stamp-mark">学</view>
+      <view>
+        <view class="stamp-title">公益学习记录</view>
+        <view class="stamp-text">如现场需要，工作人员可用本页确认参与情况。</view>
+      </view>
+    </view>
+
+    <view class="result-actions">
+      <view class="primary-action compact" bindtap="replay">再练一次</view>
+      <view class="share-action" bindtap="copyShareText">复制学习结果</view>
+      <button class="share-action" open-type="share">分享</button>
+    </view>
+
+    <button class="assistant-wide" bindtap="goAssistant">回到反诈助手</button>
+  </view>
+</view>

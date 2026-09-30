@@ -1,0 +1,105 @@
+<view class="result-page">
+  <view wx:if="{{!analysis}}" class="empty-panel">
+    <image class="empty-icon" src="/assets/logo-duck-minjin.jpg" mode="aspectFill" />
+    <view class="empty-title">还没有判断结果</view>
+    <view class="empty-text">先放入对方说的话或截图，再来看结果。</view>
+    <view class="primary-button" bindtap="goCheckAgain">去判断</view>
+  </view>
+
+  <view wx:if="{{analysis}}" class="result-content">
+    <view class="result-hero risk-{{analysis.risk_level}}">
+      <view class="result-hero-top">
+        <view class="risk-copy">
+          <view class="risk-label">{{riskText}}</view>
+          <view class="risk-summary">{{analysis.summary}}</view>
+        </view>
+        <view class="result-stamp">{{resultStampText}}</view>
+      </view>
+      <view class="risk-tags">
+        <text wx:if="{{analysis.scam_type_label}}">{{analysis.scam_type_label}}</text>
+        <text wx:if="{{analysis.case_stage_label}}">{{analysis.case_stage_label}}</text>
+      </view>
+    </view>
+
+    <view wx:if="{{isSafeFallback}}" class="safe-fallback-panel">
+      <view class="panel-title">网络慢，先按可疑情况处理</view>
+      <view class="fallback-text">工具没有完整分析成功时，也先别转钱、别给验证码、别继续共享屏幕。</view>
+      <view class="fallback-actions">
+        <view class="plain-button" bindtap="retryWithText">只用文字再试</view>
+        <view class="plain-button" bindtap="retryWithImage">重新上传截图</view>
+      </view>
+    </view>
+
+    <view wx:if="{{actionSteps.length}}" class="action-panel">
+      <view class="panel-title">现在先做这三件</view>
+      <view wx:for="{{actionSteps}}" wx:key="*this" class="action-row {{completedStepsMap[index] ? 'is-done' : ''}}" data-index="{{index}}" bindtap="toggleActionStep">
+        <text class="check-circle">{{completedStepsMap[index] ? '✓' : index + 1}}</text>
+        <text>{{item}}</text>
+      </view>
+      <view class="progress-box">
+        <view class="progress-track">
+          <view class="progress-fill" style="width: {{actionProgressPercent}}%;"></view>
+        </view>
+        <view class="progress-text">{{actionProgressText}}</view>
+      </view>
+    </view>
+
+    <view class="result-main-actions">
+      <view class="danger-button" bindtap="callPolice">拨打 110</view>
+      <view class="plain-button" bindtap="copyFamilyMessage">复制给家人</view>
+      <view class="plain-button" bindtap="goCheckAgain">再判断一次</view>
+    </view>
+
+    <view wx:if="{{privacyStep || verifyStep}}" class="safety-panel">
+      <view class="panel-title">保护自己</view>
+      <view wx:if="{{privacyStep}}" class="safety-row">
+        <text class="safety-key">隐私</text>
+        <text>{{privacyStep}}</text>
+      </view>
+      <view wx:if="{{verifyStep}}" class="safety-row">
+        <text class="safety-key">核实</text>
+        <text>{{verifyStep}}</text>
+      </view>
+    </view>
+
+    <button class="detail-toggle" bindtap="toggleDetails">{{detailToggleText}}</button>
+
+    <view wx:if="{{detailExpanded}}" class="detail-panel">
+      <view class="detail-title">详细说明</view>
+
+      <view class="detail-box">
+        <view class="box-title">报警提醒</view>
+        <view>{{analysis.police_notice}}</view>
+      </view>
+
+      <view wx:if="{{analysis.recommended_actions && analysis.recommended_actions.length}}" class="detail-box">
+        <view class="box-title">其他建议</view>
+        <view wx:for="{{analysis.recommended_actions}}" wx:key="*this" class="list-item">• {{item}}</view>
+      </view>
+
+      <view wx:if="{{analysis.judgement_basis && analysis.judgement_basis.length}}" class="detail-box">
+        <view class="box-title">为什么这样提醒</view>
+        <view wx:for="{{analysis.judgement_basis}}" wx:key="*this" class="list-item">• {{item}}</view>
+      </view>
+
+      <view wx:if="{{analysis.red_flags && analysis.red_flags.length}}" class="detail-box">
+        <view class="box-title">危险信号</view>
+        <view wx:for="{{analysis.red_flags}}" wx:key="*this" class="list-item">• {{item}}</view>
+      </view>
+
+      <view wx:if="{{analysis.evidence_to_keep && analysis.evidence_to_keep.length}}" class="detail-box">
+        <view class="box-title">先保存这些证据</view>
+        <view wx:for="{{analysis.evidence_to_keep}}" wx:key="*this" class="list-item">• {{item}}</view>
+      </view>
+
+      <view class="detail-box">
+        <view class="box-title">咨询电话</view>
+        <view class="plain-button" bindtap="callAntiFraud">问 96110</view>
+      </view>
+    </view>
+
+    <view class="bottom-actions">
+      <view class="plain-button" bindtap="goHome">回首页</view>
+    </view>
+  </view>
+</view>

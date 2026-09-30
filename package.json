@@ -6,7 +6,14 @@
   "scripts": {
     "dev": "node server/index.mjs",
     "start": "node server/index.mjs",
-    "check": "node --check server/index.mjs && node --check server/agent.mjs && node --check server/deepseekClient.mjs && node --check server/riskRules.mjs"
+    "check": "node --check server/index.mjs && node --check server/agent.mjs && node --check server/deepseekClient.mjs && node --check server/riskRules.mjs",
+    "test:routes": "node tests/appRoutes.test.cjs",
+    "test:activity": "node tests/activityChallenge.test.cjs",
+    "test:check-page": "node tests/checkPageImageFlow.test.cjs",
+    "test:check-layout": "node tests/checkPageLayout.test.cjs",
+    "test:result-layout": "node tests/resultPageLayout.test.cjs",
+    "test:visual-style": "node tests/activityVisualStyle.test.cjs",
+    "test:providers": "node tests/analyzeCaseProviders.test.cjs"
   },
   "engines": {
     "node": ">=18"
