@@ -847,7 +847,7 @@ async function runOcrExtraction(imageUrls, imageFileIDs) {
   } catch (error) {
     const msg = error.message || "";
     console.error("[analyzeCase] OCR error:", msg);
-    
+
     if (/invalid api key|2049|unauthorized|401/i.test(msg)) {
       return {
         text: "",
@@ -856,7 +856,7 @@ async function runOcrExtraction(imageUrls, imageFileIDs) {
         error: "截图识别暂时失败：MiniMax 图片通道认证未通过（2049）。请检查 MINIMAX_API_BASE 与 API Key 是否同属一个区域，也可以直接分析截图。"
       };
     }
-    
+
     return { text: "", model: provider.model, provider: provider.name, error: `提取文字失败：${msg}` };
   }
 }
@@ -886,31 +886,31 @@ function chatCompletion(provider, payload) {
     body
   }).then((data) => {
     console.log("[analyzeCase] HTTP response status:", data?.status || "OK");
-    
+
     // 检查 MiniMax 的 base_resp 错误
     if (data?.base_resp?.status_code !== 0 && data?.base_resp?.status_code !== undefined) {
       throw new Error(`${provider.name} API error: ${data.base_resp.status_msg} (code: ${data.base_resp.status_code})`);
     }
-    
+
     // 检查多种可能的响应路径
     const choice = data?.choices?.[0];
     if (!choice) {
       console.error("[analyzeCase] No choices in response:", JSON.stringify(data, null, 2));
       throw new Error(`${provider.name} API returned no choices`);
     }
-    
+
     const message = choice.message || choice.delta;
     if (!message) {
       console.error("[analyzeCase] No message in choice:", JSON.stringify(choice, null, 2));
       throw new Error(`${provider.name} API returned no message`);
     }
-    
+
     const content = message.content || message.text || message.reasoning_content || "";
     if (!content) {
       console.error("[analyzeCase] Empty content in message:", JSON.stringify(message, null, 2));
       throw new Error(`${provider.name} API returned empty content`);
     }
-    
+
     return content;
   });
 }
